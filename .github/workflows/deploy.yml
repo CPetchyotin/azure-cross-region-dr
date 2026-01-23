@@ -1,0 +1,39 @@
+name: Deploy Azure DR System
+
+on:
+  workflow_dispatch: #ให้กดปุ่มรันเองไม่รันมั่วตอน Push
+
+permissions:
+  contents: read
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+jobs:
+  deploy-sg:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./azure-sg-main
+    steps:
+    - uses: actions/checkout@v4
+    - uses: hashicorp/setup-terraform@v3
+    - run: echo "${{ secrets.SSH_PUBLIC_KEY }}" > ../id_rsa_azure.pub
+    - run: terraform init
+    - run: terraform apply -auto-approve
+
+  deploy-hk:
+    needs: deploy-sg # รอ SG เสร็จก่อน
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./azure-hk-secondary
+    steps:
+    - uses: actions/checkout@v4
+    - uses: hashicorp/setup-terraform@v3
+    - run: echo "${{ secrets.SSH_PUBLIC_KEY }}" > ../id_rsa_azure.pub
+    - run: terraform init
+    - run: terraform apply -auto-approve
