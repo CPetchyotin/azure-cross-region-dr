@@ -7,5 +7,5 @@ variable "vm_size" {
 }   
 
 variable "ssh_key_path" {
-  default = "C:\\Users\\Chonn\\Desktop\\azure-dr-project\\id_rsa_azure.pub"
+  default = "../id_rsa_azure.pub"
 }
