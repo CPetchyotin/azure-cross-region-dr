@@ -20,6 +20,7 @@ resource "azurerm_subnet" "subnet" {
   address_prefixes     = ["10.0.1.0/24"]
 }
 
+
 resource "azurerm_public_ip" "pip" {
   name                = "pip-sg"
   location            = azurerm_resource_group.rg_main.location
@@ -74,4 +75,35 @@ resource "azurerm_linux_virtual_machine" "vm" {
   tags = {
     environment = "Production", Role = "Primary-webserver"
   }
+}
+resource "azurerm_network_security_group" "nsg" {
+  name                = "nsg-allow-traffic"
+  location            = azurerm_resource_group.rg_main.location   # ⚠️ เช็คชื่อ rg_main ให้ตรงกับด้านบนของไฟล์คุณ
+  resource_group_name = azurerm_resource_group.rg_main.name
+  security_rule {
+    name                       = "Allow-SSH"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+  security_rule {
+    name                       = "Allow-HTTP"
+    priority                   = 110
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+resource "azurerm_network_interface_security_group_association" "nic_nsg_assoc" {
+  network_interface_id      = azurerm_network_interface.nic.id      # ⚠️ เช็คชื่อ .nic ให้ตรงกับ resource network_interface ของคุณ
+  network_security_group_id = azurerm_network_security_group.nsg.id
 }
