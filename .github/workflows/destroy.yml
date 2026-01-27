@@ -1,0 +1,42 @@
+name:  Destroy Infrastructure
+
+on:
+  workflow_dispatch: # ต้องกดปุ่มเองถึงจะทำงาน (กันพลาด)
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+
+    - name:  Destroy Singapore (Primary)
+      run: |
+        cd azure-sg-main
+        terraform init
+        terraform destroy -auto-approve
+
+    - name:  Destroy Hong Kong (Secondary)
+      run: |
+        cd azure-hk-secondary
+        terraform init
+        terraform destroy -auto-approve
