@@ -75,10 +75,13 @@ resource "azurerm_linux_virtual_machine" "vm" {
   tags = {
     environment = "Production", Role = "Primary-webserver"
   }
+  custom_data = base64encode(templatefile("${path.module}/../install_docker.sh", {
+    region_message = "Hello from Singapore "   # 
+  }))
 }
 resource "azurerm_network_security_group" "nsg" {
   name                = "nsg-allow-traffic"
-  location            = azurerm_resource_group.rg_main.location   # ⚠️ เช็คชื่อ rg_main ให้ตรงกับด้านบนของไฟล์คุณ
+  location            = azurerm_resource_group.rg_main.location
   resource_group_name = azurerm_resource_group.rg_main.name
   security_rule {
     name                       = "Allow-SSH"
@@ -91,6 +94,8 @@ resource "azurerm_network_security_group" "nsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
+
+# Docker
   security_rule {
     name                       = "Allow-HTTP"
     priority                   = 110
@@ -104,6 +109,6 @@ resource "azurerm_network_security_group" "nsg" {
   }
 }
 resource "azurerm_network_interface_security_group_association" "nic_nsg_assoc" {
-  network_interface_id      = azurerm_network_interface.nic.id      # ⚠️ เช็คชื่อ .nic ให้ตรงกับ resource network_interface ของคุณ
+  network_interface_id      = azurerm_network_interface.nic.id
   network_security_group_id = azurerm_network_security_group.nsg.id
 }
