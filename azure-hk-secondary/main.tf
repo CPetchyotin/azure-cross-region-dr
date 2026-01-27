@@ -76,8 +76,8 @@ resource "azurerm_linux_virtual_machine" "vm" {
 }
 resource "azurerm_network_security_group" "nsg" {
   name                = "nsg-allow-traffic"
-  location            = azurerm_resource_group.rg_main.location
-  resource_group_name = azurerm_resource_group.rg_main.name
+  location            = azurerm_resource_group.rg_dr.location
+  resource_group_name = azurerm_resource_group.rg_dr.name
 
   security_rule {
     name                       = "Allow-SSH"
