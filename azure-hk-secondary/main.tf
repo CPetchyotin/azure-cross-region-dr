@@ -71,7 +71,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
     Role        = "Secondary-webserver" #
   }
   custom_data = base64encode(templatefile("${path.module}/../install_docker.sh", {
-    region_message = "Hello from Singapore "   #
+    region_message = "Hello from Hongkong "   #
   }))
 }
 resource "azurerm_network_security_group" "nsg" {
