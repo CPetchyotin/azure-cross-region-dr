@@ -18,8 +18,8 @@ resource "azurerm_traffic_manager_profile" "tm" {
   }
 }
 resource "azurerm_traffic_manager_endpoint" "sg_endpoint" {
-  name               = "sg_endpoint"
-  profile_name       = traffic_manager_profile.tm.name
+  name               = "sg-endpoint"
+  profile_id       = azurerm_traffic_manager_profile.tm.id
   target_resource_id = azurerm_public_ip.pip.id
   priority           = 1
   weight             = 100
