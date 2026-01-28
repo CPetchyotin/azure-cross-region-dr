@@ -25,9 +25,9 @@ resource "azurerm_traffic_manager_endpoint" "sg_endpoint" {
   weight             = 100
 }
 resource "azurerm_traffic_manager_endpoint" "hk_endpoint" {
-  name               = "hk_endpoint"
-  target_resource_id = azure-hk-secondary.azurerm_public_ip.pip.id
-  priority           = 2
-  weight             = 100
+  name       = "hk-endpoint"
+  profile_id = azurerm_traffic_manager_profile.tm.id
+  priority   = 2
+  weight     = 100
   target     = "my-hk-app-999.eastasia.cloudapp.azure.com"
 }
