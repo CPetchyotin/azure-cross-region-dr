@@ -27,6 +27,7 @@ resource "azurerm_public_ip" "pip" {
   resource_group_name = azurerm_resource_group.rg_main.name
   allocation_method   = "Static"
   sku                 = "Standard"
+  domain_name_label   = "my-sg-app-999"
 }
 
 resource "azurerm_network_interface" "nic" {
