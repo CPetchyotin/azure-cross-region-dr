@@ -1,7 +1,7 @@
-resource "traffic_manager_profile" "tm" {
+resource "azurerm_traffic_manager_profile" "tm" {
   name                   = "my-supper-app-tm"
   resource_group_name    = azurerm_resource_group.rg_main.name
-  location               = "global"
+  location               = "Global"
   traffic_routing_method = "Priority"
 
   dns_config {
