@@ -17,14 +17,14 @@ resource "azurerm_traffic_manager_profile" "tm" {
     tolerated_number_of_failures = 3
   }
 }
-resource "azurerm_traffic_manager_endpoint" "sg_endpoint" {
+resource "azurerm_traffic_manager_azure_endpoint" "sg_endpoint" {
   name               = "sg-endpoint"
-  profile_id       = azurerm_traffic_manager_profile.tm.id
+  profile_id         = azurerm_traffic_manager_profile.tm.id
   target_resource_id = azurerm_public_ip.pip.id
   priority           = 1
   weight             = 100
 }
-resource "azurerm_traffic_manager_endpoint" "hk_endpoint" {
+resource "azurerm_traffic_manager_external_endpoint" "hk_endpoint" {
   name       = "hk-endpoint"
   profile_id = azurerm_traffic_manager_profile.tm.id
   priority   = 2
