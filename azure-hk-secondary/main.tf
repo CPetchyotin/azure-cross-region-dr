@@ -1,18 +1,12 @@
 terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 3.0"
-    }
-  }
-
   backend "azurerm" {
     resource_group_name  = "rg-terraform-state"
-    storage_account_name = "stterraformcnn001"
+    storage_account_name = "stterraformcnn001" # 👈 แก้เป็นชื่อตู้เซฟของคุณ!
     container_name       = "tfstate"
-    key                  = "hk.tfstate"
+    key                  = "hk.tfstate" # ชื่อไฟล์ความจำของสิงคโปร์
   }
 }
+
 resource "azurerm_resource_group" "rg_dr" {
   name     = "rg-dr"
   location = var.location

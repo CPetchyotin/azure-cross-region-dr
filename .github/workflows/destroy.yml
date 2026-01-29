@@ -1,44 +1,37 @@
-name:  Destroy Infrastructure
+name: 💣 Destroy Infrastructure
 
 on:
-  workflow_dispatch: # ต้องกดปุ่มเองถึงจะทำงาน (กันพลาด)
+  workflow_dispatch:
 
 permissions:
-  id-token: write
   contents: read
 
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_ACCESS_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
+
 jobs:
-  destroy:
+  destroy-hk: 
     runs-on: ubuntu-latest
-    environment: Production
-    env:
-      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      ARM_ACCESS_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
-    
+    defaults:
+      run:
+        working-directory: ./azure-hk-secondary
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init  
+      - run: terraform destroy -auto-approve 
 
-    - name: Login to Azure
-      uses: azure/login@v1
-      with:
-        client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
-
-    - name:  Destroy Singapore (Primary)
-      run: |
-        cd azure-sg-main
-        terraform init
-        terraform destroy -auto-approve
-
-    - name:  Destroy Hong Kong (Secondary)
-      run: |
-        cd azure-hk-secondary
-        terraform init
-        terraform destroy -auto-approve
+  destroy-sg: 
+    needs: destroy-hk 
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./azure-sg-main
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform init  
+      - run: terraform destroy -auto-approve
