@@ -1,3 +1,18 @@
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.0"
+    }
+  }
+
+  backend "azurerm" {
+    resource_group_name  = "rg-terraform-state"
+    storage_account_name = "stterraformcnn001"
+    container_name       = "tfstate"
+    key                  = "hk.tfstate"
+  }
+}
 resource "azurerm_resource_group" "rg_dr" {
   name     = "rg-dr"
   location = var.location
@@ -68,11 +83,11 @@ resource "azurerm_linux_virtual_machine" "vm" {
     version   = "latest"
   }
   tags = {
-    environment = "Disaster-Recovery"  #
+    environment = "Disaster-Recovery"   #
     Role        = "Secondary-webserver" #
   }
   custom_data = base64encode(templatefile("${path.module}/../install_docker.sh", {
-    region_message = "Hello from Hongkong "   #
+    region_message = "Hello from Hongkong " #
   }))
 }
 resource "azurerm_network_security_group" "nsg" {
@@ -91,7 +106,7 @@ resource "azurerm_network_security_group" "nsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
-# docker
+  # docker
   security_rule {
     name                       = "Allow-HTTP"
     priority                   = 110
