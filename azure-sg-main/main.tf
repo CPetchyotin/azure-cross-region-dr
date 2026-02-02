@@ -1,12 +1,10 @@
 terraform {
-    backend "azurerm" {
+  backend "azurerm" {
     resource_group_name  = "rg-terraform-state"
-    storage_account_name = "stterraformcnn001"  # 👈 แก้เป็นชื่อตู้เซฟของคุณ!
+    storage_account_name = "stterraformcnn001" # 👈 แก้เป็นชื่อตู้เซฟของคุณ!
     container_name       = "tfstate"
-    key                  = "sg.tfstate"          # ชื่อไฟล์ความจำของสิงคโปร์
+    key                  = "sg.tfstate" # ชื่อไฟล์ความจำของสิงคโปร์
   }
-
-
 }
 
 resource "azurerm_resource_group" "rg_main" {
@@ -55,11 +53,11 @@ resource "azurerm_network_interface" "nic" {
 }
 
 resource "azurerm_linux_virtual_machine" "vm" {
-  name                = "vm-sg"
-  resource_group_name = azurerm_resource_group.rg_main.name
-  location            = azurerm_resource_group.rg_main.location
-  size                = var.vm_size
-  admin_username      = "adminuser"
+  name                            = "vm-sg"
+  resource_group_name             = azurerm_resource_group.rg_main.name
+  location                        = azurerm_resource_group.rg_main.location
+  size                            = var.vm_size
+  admin_username                  = "adminuser"
   disable_password_authentication = true
 
 
@@ -88,7 +86,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
     environment = "Production", Role = "Primary-webserver"
   }
   custom_data = base64encode(templatefile("${path.module}/../install_docker.sh", {
-    region_message = "Hello from Singapore "   # 
+    region_message = "Hello from Singapore " # 
   }))
 }
 resource "azurerm_network_security_group" "nsg" {
@@ -107,7 +105,7 @@ resource "azurerm_network_security_group" "nsg" {
     destination_address_prefix = "*"
   }
 
-# Docker
+  # Docker
   security_rule {
     name                       = "Allow-HTTP"
     priority                   = 110
@@ -125,3 +123,21 @@ resource "azurerm_network_interface_security_group_association" "nic_nsg_assoc" 
   network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
+resource "azurerm_container_registry" "acr" {
+  name                     = "acragss2026" 
+  resource_group_name      = azurerm_resource_group.rg_main.name
+  location                 = azurerm_resource_group.rg_main.location
+  sku                      = "Basic"
+  admin_enabled            = true
+} 
+
+output "acr_login_server" {
+  value = azurerm_container_registry.acr.login_server
+}
+output "acr_admin_username" {
+  value = azurerm_container_registry.acr.admin_username
+}
+output "acr_admin_password" {
+  value = azurerm_container_registry.acr.admin_password
+  sensitive = true
+}
