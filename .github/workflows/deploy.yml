@@ -82,7 +82,7 @@ jobs:
   # 🇭🇰 DEPLOY SECONDARY (HONG KONG)
   # ==========================================
   deploy-hk:
-    needs: deploy-sg # รอ SG เสร็จก่อน
+    # needs: deploy-sg # รอ SG เสร็จก่อน
     runs-on: ubuntu-latest
     defaults:
       run:

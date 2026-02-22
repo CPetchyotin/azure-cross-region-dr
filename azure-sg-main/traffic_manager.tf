@@ -1,20 +1,20 @@
 resource "azurerm_traffic_manager_profile" "tm" {
-  name                   = "my-supper-app-tm"
+  name                   = "agss-dr-tm-profile"
   resource_group_name    = azurerm_resource_group.rg_main.name
   traffic_routing_method = "Priority"
 
   dns_config {
-    relative_name = "my-supper-app-tm"
-    ttl           = 60
+    relative_name = "agss-app-service"
+    ttl           = 30
   }
 
   monitor_config {
     protocol                     = "HTTP"
     port                         = 80
     path                         = "/"
-    interval_in_seconds          = 30
-    timeout_in_seconds           = 9
-    tolerated_number_of_failures = 3
+    interval_in_seconds          = 15
+    timeout_in_seconds           = 7
+    tolerated_number_of_failures = 2
   }
 }
 resource "azurerm_traffic_manager_azure_endpoint" "sg_endpoint" {
