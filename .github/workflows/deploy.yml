@@ -1,7 +1,7 @@
 name: Deploy Azure DR System
 
 on:
-  workflow_dispatch: #ให้กดปุ่มรันเองไม่รันมั่วตอน Push
+  workflow_dispatch: # กดรันเองผ่านหน้า GitHub Actions
 
 permissions:
   contents: read
@@ -25,16 +25,19 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: hashicorp/setup-terraform@v3
+    
+    # สร้างกุญแจ Public Key เพื่อให้ Terraform ใช้สร้าง VM
     - run: echo "${{ secrets.SSH_PUBLIC_KEY }}" > ../id_rsa_azure.pub
+    
     - run: terraform init
     - run: terraform apply -auto-approve
 
-    # 🌟 1. ดึง IP ของ VM สิงคโปร์
+    # ดึงค่า Public IP จาก Output ของ Terraform
     - name: Get SG VM Public IP
       id: get_ip
       run: echo "SG_IP=$(terraform output -raw primary_public_ip)" >> $GITHUB_ENV
 
-    # 🌟 2. สร้างโฟลเดอร์รอไว้
+    # สร้างโฟลเดอร์สำหรับลงเว็บ
     - name: Create Web Directory
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -43,7 +46,7 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: mkdir -p /home/adminuser/my-web
 
-    # 🌟 3. โยนโฟลเดอร์ Next.js ไปที่ VM
+    # ส่งไฟล์โปรเจค Next.js ข้ามเครื่อง
     - name: Copy Web Files to SG
       uses: appleboy/scp-action@v0.1.7
       with:
@@ -54,7 +57,7 @@ jobs:
         target: "/home/adminuser/my-web"
         strip_components: 1
 
-    # 🌟 4. รัน Docker Compose Build & Up
+    # ติดตั้ง Docker และสั่งรัน Container
     - name: Run Docker Compose on SG
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -64,17 +67,17 @@ jobs:
         script: |
           cd /home/adminuser/my-web
           
-          # เช็คและลง Docker + Compose
+          # ติดตั้ง Docker และ Docker Compose (แบบมีขีดกลาง)
           if ! command -v docker &> /dev/null; then
             export DEBIAN_FRONTEND=noninteractive
             sudo apt-get update -y
-            sudo apt-get install -y docker.io docker-compose-plugin
+            sudo apt-get install -y docker.io docker-compose
             sudo systemctl start docker
             sudo systemctl enable docker
             sudo usermod -aG docker adminuser
           fi
-          
-          # รัน Next.js
+
+          # รันด้วยคำสั่ง docker-compose (มีขีดกลาง)
           sudo docker-compose down || true
           sudo docker-compose up -d --build
 
@@ -82,7 +85,7 @@ jobs:
   # 🇭🇰 DEPLOY SECONDARY (HONG KONG)
   # ==========================================
   deploy-hk:
-    # needs: deploy-sg # รอ SG เสร็จก่อน
+    # ❌ ลบ needs: deploy-sg ออกเพื่อให้รันพร้อมกับสิงคโปร์ทันที
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -90,16 +93,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: hashicorp/setup-terraform@v3
+    
     - run: echo "${{ secrets.SSH_PUBLIC_KEY }}" > ../id_rsa_azure.pub
+    
     - run: terraform init
     - run: terraform apply -auto-approve
 
-    # 🌟 1. ดึง IP ของ VM ฮ่องกง
     - name: Get HK VM Public IP
       id: get_ip
       run: echo "HK_IP=$(terraform output -raw secondary_public_ip)" >> $GITHUB_ENV
 
-    # 🌟 2. สร้างโฟลเดอร์รอไว้
     - name: Create Web Directory
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -108,7 +111,6 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: mkdir -p /home/adminuser/my-web
 
-    # 🌟 3. โยนโฟลเดอร์ Next.js ไปที่ VM
     - name: Copy Web Files to HK
       uses: appleboy/scp-action@v0.1.7
       with:
@@ -119,7 +121,6 @@ jobs:
         target: "/home/adminuser/my-web"
         strip_components: 1
 
-    # 🌟 4. รัน Docker Compose Build & Up
     - name: Run Docker Compose on HK
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -132,11 +133,17 @@ jobs:
           if ! command -v docker &> /dev/null; then
             export DEBIAN_FRONTEND=noninteractive
             sudo apt-get update -y
-            sudo apt-get install -y docker.io docker-compose-plugin
+            sudo apt-get install -y docker.io docker-compose
             sudo systemctl start docker
             sudo systemctl enable docker
             sudo usermod -aG docker adminuser
           fi
-          
+
+          # ป้องกัน Error 'command not found' โดยการบังคับลง docker-compose อีกครั้งถ้าหาไม่เจอ
+          if ! command -v docker-compose &> /dev/null; then
+            sudo apt-get update -y
+            sudo apt-get install -y docker-compose
+          fi
+
           sudo docker-compose down || true
           sudo docker-compose up -d --build
