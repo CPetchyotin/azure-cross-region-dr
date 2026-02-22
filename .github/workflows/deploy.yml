@@ -93,7 +93,7 @@ jobs:
           sudo docker compose down --remove-orphans || true
 
           # 🌟 บังคับ Build ใหม่แบบไม่ใช้ Cache เพื่ออัปเดตรูปภาพและแก้ Encoding
-          sudo docker compose up -d --build --force-recreate --no-cache
+          sudo docker compose up -d --build --force-recreate
 
   # ==========================================
   # 🇭🇰 DEPLOY SECONDARY (HONG KONG)
@@ -167,4 +167,4 @@ jobs:
 
           # 🌟 ทำเหมือนฝั่ง SG เพื่อความแน่นอน
           sudo docker compose down --remove-orphans || true
-          sudo docker compose up -d --build --force-recreate --no-cache
+          sudo docker compose up -d --build --force-recreate
