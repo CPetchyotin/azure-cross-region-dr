@@ -12,7 +12,7 @@ resource "azurerm_traffic_manager_profile" "tm" {
     protocol                     = "HTTP"
     port                         = 80
     path                         = "/"
-    interval_in_seconds          = 15
+    interval_in_seconds          = 10
     timeout_in_seconds           = 7
     tolerated_number_of_failures = 2
   }
