@@ -57,7 +57,7 @@ jobs:
         target: "/home/adminuser/my-web"
         strip_components: 1
 
-    # ติดตั้ง Docker และสั่งรัน Container
+    # ติดตั้ง Docker V2 และสั่งรัน Container
     - name: Run Docker Compose on SG
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -68,30 +68,26 @@ jobs:
           cd /home/adminuser/my-web
           export DEBIAN_FRONTEND=noninteractive
 
-          # 🌟 1. เช็คและติดตั้ง Docker Engine (ถ้าไม่มี)
+          # 🌟 1. ติดตั้ง Docker Engine และ Compose Plugin (V2)
           if ! command -v docker &> /dev/null; then
             sudo apt-get update -y
-            sudo apt-get install -y docker.io
+            sudo apt-get install -y docker.io docker-compose-plugin
             sudo systemctl start docker
             sudo systemctl enable docker
             sudo usermod -aG docker adminuser
           fi
 
-          # 🌟 2. เช็คและติดตั้ง Docker Compose แยกต่างหาก (ถ้าไม่มี)
-          if ! command -v docker-compose &> /dev/null; then
-            sudo apt-get update -y
-            sudo apt-get install -y docker-compose
-          fi
+          # 🌟 2. ลบ Docker Compose V1 (ตัวเก่าที่มีบั๊ก) ออกถ้ามี
+          sudo apt-get remove -y docker-compose || true
 
-          # 🌟 3. รันด้วยสิทธิ์ sudo เพื่อความชัวร์เรื่อง Permission
-          sudo docker-compose down || true
-          sudo docker-compose up -d --build
+          # 🌟 3. รันด้วยคำสั่ง Docker V2 (เว้นวรรค ไม่มีขีดกลาง)
+          sudo docker compose up -d --build --remove-orphans
 
   # ==========================================
   # 🇭🇰 DEPLOY SECONDARY (HONG KONG)
   # ==========================================
   deploy-hk:
-    # 🚀 รันพร้อมกับสิงคโปร์ทันที (Parallel)
+    # 🚀 รันขนานไปพร้อมกับสิงคโปร์ทันที
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -139,16 +135,13 @@ jobs:
 
           if ! command -v docker &> /dev/null; then
             sudo apt-get update -y
-            sudo apt-get install -y docker.io
+            sudo apt-get install -y docker.io docker-compose-plugin
             sudo systemctl start docker
             sudo systemctl enable docker
             sudo usermod -aG docker adminuser
           fi
 
-          if ! command -v docker-compose &> /dev/null; then
-            sudo apt-get update -y
-            sudo apt-get install -y docker-compose
-          fi
+          sudo apt-get remove -y docker-compose || true
 
-          sudo docker-compose down || true
-          sudo docker-compose up -d --build
+          # 🌟 รันด้วยมาตรฐาน V2 เหมือนกัน
+          sudo docker compose up -d --build --remove-orphans
