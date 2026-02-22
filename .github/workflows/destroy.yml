@@ -22,6 +22,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
+      
+      - run: echo "${{ secrets.SSH_PUBLIC_KEY }}" > ../id_rsa_azure.pub
+      
       - run: terraform init  
       - run: terraform destroy -auto-approve 
 
@@ -34,5 +37,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
+      
+      - run: echo "${{ secrets.SSH_PUBLIC_KEY }}" > ../id_rsa_azure.pub
+      
       - run: terraform init  
       - run: terraform destroy -auto-approve
