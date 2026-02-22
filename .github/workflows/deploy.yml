@@ -32,7 +32,7 @@ jobs:
     # 🌟 1. ดึง IP ของ VM สิงคโปร์
     - name: Get SG VM Public IP
       id: get_ip
-      run: echo "SG_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+      run: echo "SG_IP=$(terraform output -raw primary_public_ip)" >> $GITHUB_ENV
 
     # 🌟 2. สร้างโฟลเดอร์รอไว้
     - name: Create Web Directory
@@ -97,7 +97,7 @@ jobs:
     # 🌟 1. ดึง IP ของ VM ฮ่องกง
     - name: Get HK VM Public IP
       id: get_ip
-      run: echo "HK_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+      run: echo "HK_IP=$(terraform output -raw secondary_public_ip)" >> $GITHUB_ENV
 
     # 🌟 2. สร้างโฟลเดอร์รอไว้
     - name: Create Web Directory
