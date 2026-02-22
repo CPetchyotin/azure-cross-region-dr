@@ -3,7 +3,7 @@ variable "location" {
 }
 
 variable "vm_size" {
-  default = "Standard_B2als_v2" #  2 vCPU, 4GB RAM
+  default = "Standard_B2als_v2" #  2 vCPUs, 8GB RAM
 }   
 
 variable "ssh_key_path" {

@@ -4,7 +4,7 @@
 *.tfstate.backup
 .terraform.lock.hcl
 
-
+id_rsa_azure.pub
 id_rsa_azure
 *.tfvars
 
