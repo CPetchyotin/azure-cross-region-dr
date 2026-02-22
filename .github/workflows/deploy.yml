@@ -57,7 +57,7 @@ jobs:
         target: "/home/adminuser/my-web"
         strip_components: 1
 
-    # ติดตั้ง Docker V2 และสั่งรัน Container (แบบรอ Apt Lock)
+    # ติดตั้ง Docker V2 และสั่งรัน Container
     - name: Run Docker Compose on SG
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -68,7 +68,7 @@ jobs:
           cd /home/adminuser/my-web
           export DEBIAN_FRONTEND=noninteractive
 
-          # 🌟 ฟังก์ชันรอ Apt Lock เพื่อป้องกันการแย่งกันติดตั้ง
+          # ฟังก์ชันรอ Apt Lock เพื่อป้องกันการแย่งกันติดตั้ง
           wait_for_apt() {
             echo "Waiting for apt lock..."
             while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
@@ -78,7 +78,6 @@ jobs:
           wait_for_apt
           sudo apt-get update -y
 
-          # 🌟 ติดตั้ง Docker Engine และ Plugin V2 (ตัวใหม่)
           if ! command -v docker &> /dev/null; then
             wait_for_apt
             sudo apt-get install -y docker.io docker-compose-plugin
@@ -88,11 +87,13 @@ jobs:
             sudo usermod -aG docker adminuser
           fi
 
-          # ลบตัวเก่าที่มีบั๊กออก
           sudo apt-get remove -y docker-compose || true
 
-          # 🌟 รันด้วยมาตรฐาน Docker V2 (เว้นวรรค)
-          sudo docker compose up -d --build --remove-orphans
+          # 🌟 แก้ไขปัญหา Image ไม่ขึ้น: ลบ Container และ Network เก่าที่อาจค้างอยู่
+          sudo docker compose down --remove-orphans || true
+
+          # 🌟 บังคับ Build ใหม่แบบไม่ใช้ Cache เพื่ออัปเดตรูปภาพและแก้ Encoding
+          sudo docker compose up -d --build --force-recreate --no-cache
 
   # ==========================================
   # 🇭🇰 DEPLOY SECONDARY (HONG KONG)
@@ -164,5 +165,6 @@ jobs:
 
           sudo apt-get remove -y docker-compose || true
 
-          # 🌟 รันด้วยมาตรฐาน V2 เหมือนกัน
-          sudo docker compose up -d --build --remove-orphans
+          # 🌟 ทำเหมือนฝั่ง SG เพื่อความแน่นอน
+          sudo docker compose down --remove-orphans || true
+          sudo docker compose up -d --build --force-recreate --no-cache
