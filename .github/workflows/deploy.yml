@@ -64,9 +64,18 @@ jobs:
         script: |
           cd /home/adminuser/my-web
           
-          # เช็คและลง Docker + Compose
+          # 🌟 พระเอกของเรา: ฟังก์ชันเช็คและรอให้ระบบหลังบ้านปลดล็อก
+          wait_for_apt() {
+            while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
+            while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
+          }
+
+          # เช็คว่ามี Docker หรือยัง ถ้ายังไม่มีให้รอคิวแล้วค่อยลง
           if ! command -v docker &> /dev/null; then
             export DEBIAN_FRONTEND=noninteractive
+            
+            wait_for_apt # 🌟 สั่งให้รอก่อนเริ่มอัปเดต
+            
             sudo apt-get update -y
             sudo apt-get install -y docker.io docker-compose-plugin
             sudo systemctl start docker
@@ -74,7 +83,7 @@ jobs:
             sudo usermod -aG docker adminuser
           fi
           
-          # รัน Next.js
+          # รัน Docker Compose (เรียบง่ายและคลีนเหมือนเดิม)
           sudo docker compose down || true
           sudo docker compose up -d --build
 
@@ -129,8 +138,18 @@ jobs:
         script: |
           cd /home/adminuser/my-web
           
+          # 🌟 พระเอกของเรา: ฟังก์ชันเช็คและรอให้ระบบหลังบ้านปลดล็อก
+          wait_for_apt() {
+            while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
+            while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
+          }
+
+          # เช็คว่ามี Docker หรือยัง ถ้ายังไม่มีให้รอคิวแล้วค่อยลง
           if ! command -v docker &> /dev/null; then
             export DEBIAN_FRONTEND=noninteractive
+            
+            wait_for_apt # 🌟 สั่งให้รอก่อนเริ่มอัปเดต
+            
             sudo apt-get update -y
             sudo apt-get install -y docker.io docker-compose-plugin
             sudo systemctl start docker
@@ -138,5 +157,6 @@ jobs:
             sudo usermod -aG docker adminuser
           fi
           
+          # รัน Docker Compose (เรียบง่ายและคลีนเหมือนเดิม)
           sudo docker compose down || true
           sudo docker compose up -d --build
