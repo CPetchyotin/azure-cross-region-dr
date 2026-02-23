@@ -72,26 +72,17 @@ jobs:
           if ! command -v docker &> /dev/null; then
             sudo apt-get update -y
             sudo apt-get install -y docker.io docker-compose-plugin
-            sudo systemctl start docker
             sudo systemctl enable docker
-            sudo usermod -aG docker adminuser
           fi
 
-          # 🌟 THE THANOS SNAP: ล้างให้เหี้ยน
-          # 1. หยุด Container ทั้งหมดที่กำลังรันอยู่ (ป้องกันมันคืนชีพกลับมาตอนเราพยายามลบ)
-          sudo docker stop $(sudo docker ps -aq) || true
-          
-          # 2. ลบ Container ทั้งหมดทิ้ง
-          sudo docker rm -f $(sudo docker ps -aq) || true
-          
-          # 3. ลบ Network ที่ชื่อ my-web_default ที่มันฟ้องว่าพังด้วย
-          sudo docker network rm my-web_default || true
-          
-          # 4. ใช้ compose down อีกรอบเพื่อความชัวร์ 100%
-          sudo docker compose down -v --remove-orphans || true
+          # 🌟 1. ท่าไม้ตาย: รีสตาร์ท Docker Service เพื่อล้างบัคซอมบี้
+          sudo systemctl restart docker
 
-          # รันใหม่พร้อม Build สดๆ
-          sudo docker compose up -d --build --force-recreate
+          # 🌟 2. ล้างขยะทั้งหมดแบบหมดจด (Image/Container/Volume เก่า)
+          sudo docker system prune -a --volumes -f
+
+          # 🌟 3. รันใหม่โดยบังคับเปลี่ยนชื่อโปรเจคเป็น agss_dr หนีบัคชื่อชนเด็ดขาด
+          sudo docker compose -p agss_dr up -d --build
 
   # ==========================================
   # 🇭🇰 DEPLOY SECONDARY (HONG KONG)
@@ -152,23 +143,10 @@ jobs:
           if ! command -v docker &> /dev/null; then
             sudo apt-get update -y
             sudo apt-get install -y docker.io docker-compose-plugin
-            sudo systemctl start docker
             sudo systemctl enable docker
-            sudo usermod -aG docker adminuser
           fi
 
-          # 🌟 THE THANOS SNAP: ล้างให้เหี้ยน
-          # 1. หยุด Container ทั้งหมดที่กำลังรันอยู่ (ป้องกันมันคืนชีพกลับมาตอนเราพยายามลบ)
-          sudo docker stop $(sudo docker ps -aq) || true
-          
-          # 2. ลบ Container ทั้งหมดทิ้ง
-          sudo docker rm -f $(sudo docker ps -aq) || true
-          
-          # 3. ลบ Network ที่ชื่อ my-web_default ที่มันฟ้องว่าพังด้วย
-          sudo docker network rm my-web_default || true
-          
-          # 4. ใช้ compose down อีกรอบเพื่อความชัวร์ 100%
-          sudo docker compose down -v --remove-orphans || true
-
-          # รันใหม่พร้อม Build สดๆ
-          sudo docker compose up -d --build --force-recreate
+          # 🌟 ล้างระบบและรันใหม่ด้วยชื่อโปรเจคใหม่เหมือนฝั่งสิงคโปร์
+          sudo systemctl restart docker
+          sudo docker system prune -a --volumes -f
+          sudo docker compose -p agss_dr up -d --build
