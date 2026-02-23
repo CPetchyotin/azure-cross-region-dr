@@ -63,7 +63,6 @@ jobs:
           cd /home/adminuser/my-web
           export DEBIAN_FRONTEND=noninteractive
 
-          # ฟังก์ชันรอ Apt Lock
           wait_for_apt() {
             while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
             while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
@@ -78,11 +77,20 @@ jobs:
             sudo usermod -aG docker adminuser
           fi
 
-          # 🌟 ล้าง Container แบบถอนรากถอนโคน เพื่อไม่ให้ชื่อชนกัน
-          sudo docker compose down --remove-orphans || true
-          sudo docker rm -f my-web-web-1 || true 
+          # 🌟 THE THANOS SNAP: ล้างให้เหี้ยน
+          # 1. หยุด Container ทั้งหมดที่กำลังรันอยู่ (ป้องกันมันคืนชีพกลับมาตอนเราพยายามลบ)
+          sudo docker stop $(sudo docker ps -aq) || true
           
-          # รันใหม่พร้อม Build สดๆ (เอาคำว่า debug ออกแล้ว)
+          # 2. ลบ Container ทั้งหมดทิ้ง
+          sudo docker rm -f $(sudo docker ps -aq) || true
+          
+          # 3. ลบ Network ที่ชื่อ my-web_default ที่มันฟ้องว่าพังด้วย
+          sudo docker network rm my-web_default || true
+          
+          # 4. ใช้ compose down อีกรอบเพื่อความชัวร์ 100%
+          sudo docker compose down -v --remove-orphans || true
+
+          # รันใหม่พร้อม Build สดๆ
           sudo docker compose up -d --build --force-recreate
 
   # ==========================================
@@ -149,9 +157,18 @@ jobs:
             sudo usermod -aG docker adminuser
           fi
 
-          # 🌟 ล้างเหมือนฝั่งสิงคโปร์เพื่อป้องกันชื่อชนกัน
-          sudo docker compose down --remove-orphans || true
-          sudo docker rm -f my-web-web-1 || true
+          # 🌟 THE THANOS SNAP: ล้างให้เหี้ยน
+          # 1. หยุด Container ทั้งหมดที่กำลังรันอยู่ (ป้องกันมันคืนชีพกลับมาตอนเราพยายามลบ)
+          sudo docker stop $(sudo docker ps -aq) || true
           
-          # รันใหม่แบบสดๆ
+          # 2. ลบ Container ทั้งหมดทิ้ง
+          sudo docker rm -f $(sudo docker ps -aq) || true
+          
+          # 3. ลบ Network ที่ชื่อ my-web_default ที่มันฟ้องว่าพังด้วย
+          sudo docker network rm my-web_default || true
+          
+          # 4. ใช้ compose down อีกรอบเพื่อความชัวร์ 100%
+          sudo docker compose down -v --remove-orphans || true
+
+          # รันใหม่พร้อม Build สดๆ
           sudo docker compose up -d --build --force-recreate
