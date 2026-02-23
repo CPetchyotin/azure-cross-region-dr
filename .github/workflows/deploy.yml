@@ -1,7 +1,7 @@
 name: Deploy Azure DR System
 
 on:
-  workflow_dispatch: # กดรันเองผ่านหน้า GitHub Actions
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -35,21 +35,25 @@ jobs:
       id: get_ip
       run: echo "SG_IP=$(terraform output -raw primary_public_ip)" >> $GITHUB_ENV
 
-    - name: Create Web Directory
+    # 🌟 1. ล้างโฟลเดอร์เก่าทิ้งให้เหี้ยน ก่อนสร้างใหม่
+    - name: Clean and Create Web Directory
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ env.SG_IP }}
         username: adminuser
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: mkdir -p /home/adminuser/my-web
+        script: |
+          rm -rf /home/adminuser/my-web
+          mkdir -p /home/adminuser/my-web
 
+    # 🌟 2. แก้ Source เป็น agss-web (ไม่มี /*) เพื่อให้ก๊อบปี้ไฟล์ Config ที่ซ่อนอยู่ไปด้วย
     - name: Copy Web Files to SG
       uses: appleboy/scp-action@v0.1.7
       with:
         host: ${{ env.SG_IP }}
         username: adminuser
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: "agss-web/*"
+        source: "agss-web"
         target: "/home/adminuser/my-web"
         strip_components: 1
 
@@ -75,20 +79,18 @@ jobs:
             sudo systemctl enable docker
           fi
 
-          # 🌟 1. ท่าไม้ตาย: รีสตาร์ท Docker Service เพื่อล้างบัคซอมบี้
           sudo systemctl restart docker
-
-          # 🌟 2. ล้างขยะทั้งหมดแบบหมดจด (Image/Container/Volume เก่า)
           sudo docker system prune -a --volumes -f
 
-          # 🌟 3. รันใหม่โดยบังคับเปลี่ยนชื่อโปรเจคเป็น agss_dr หนีบัคชื่อชนเด็ดขาด
-          sudo docker compose -p agss_dr up -d --build
+          # 🌟 3. แยกคำสั่ง Build ออกมา และใส่ --no-cache เพื่อบังคับอ่านไฟล์ใหม่ 100%
+          sudo docker compose -p agss_dr build --no-cache
+          sudo docker compose -p agss_dr up -d
 
   # ==========================================
   # 🇭🇰 DEPLOY SECONDARY (HONG KONG)
   # ==========================================
   deploy-hk:
-    needs: deploy-sg # 🌟 ทำงานต่อจากสิงคโปร์เพื่อความเสถียร 100%
+    needs: deploy-sg
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -106,21 +108,25 @@ jobs:
       id: get_ip
       run: echo "HK_IP=$(terraform output -raw secondary_public_ip)" >> $GITHUB_ENV
 
-    - name: Create Web Directory
+    # 🌟 ทำเหมือนสิงคโปร์: ล้างโฟลเดอร์เก่าทิ้ง
+    - name: Clean and Create Web Directory
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ env.HK_IP }}
         username: adminuser
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: mkdir -p /home/adminuser/my-web
+        script: |
+          rm -rf /home/adminuser/my-web
+          mkdir -p /home/adminuser/my-web
 
+    # 🌟 ดึงไฟล์มาทั้งหมด รวมถึงไฟล์ที่ซ่อนอยู่
     - name: Copy Web Files to HK
       uses: appleboy/scp-action@v0.1.7
       with:
         host: ${{ env.HK_IP }}
         username: adminuser
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: "agss-web/*"
+        source: "agss-web"
         target: "/home/adminuser/my-web"
         strip_components: 1
 
@@ -146,7 +152,9 @@ jobs:
             sudo systemctl enable docker
           fi
 
-          # 🌟 ล้างระบบและรันใหม่ด้วยชื่อโปรเจคใหม่เหมือนฝั่งสิงคโปร์
           sudo systemctl restart docker
           sudo docker system prune -a --volumes -f
-          sudo docker compose -p agss_dr up -d --build
+          
+          # 🌟 บังคับ Build แบบ No-Cache
+          sudo docker compose -p agss_dr build --no-cache
+          sudo docker compose -p agss_dr up -d
