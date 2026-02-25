@@ -29,38 +29,33 @@ jobs:
       - run: terraform init
       - run: terraform apply -auto-approve
 
-      # 🌟 1. ดึง IP ของ VM สิงคโปร์
       - name: Get SG VM Public IP
         id: get_ip
         run: echo "SG_IP=$(terraform output -raw primary_public_ip)" >> $GITHUB_ENV
 
-      # 🌟 2. สร้างโฟลเดอร์รอไว้
-      - name: Create Web Directory
+      # 🌟 จุดที่ 1: สร้างโฟลเดอร์เสร็จปุ๊บ สั่งลบไฟล์เก่าทิ้งให้เหี้ยน
+      - name: Create and Clean Web Directory
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ env.SG_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: mkdir -p /home/adminuser/my-web
+          script: |
+            mkdir -p /home/adminuser/my-web
+            rm -rf /home/adminuser/my-web/*
+            rm -rf /home/adminuser/my-web/.* 2>/dev/null || true
 
-      # 🌟 3. โยนโฟลเดอร์ Next.js ไปที่ VM
+      # 🌟 จุดที่ 2: เอา /* ออก เพื่อให้ก๊อบปี้ไฟล์ทั้งหมดแบบไม่ตกหล่น
       - name: Copy Web Files to SG
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ env.SG_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "agss-web/*"
+          source: "agss-web" 
           target: "/home/adminuser/my-web"
           strip_components: 1
 
-      # 🌟 4. รัน Docker Compose Build & Up
-      - name: Run Docker Compose on SG
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ env.SG_IP }}
-          username: adminuser
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
       - name: Run Docker Compose on SG
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -68,39 +63,35 @@ jobs:
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "⏳ Waiting for Azure cloud-init to finish..."
-            cloud-init status --wait || true
-            while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
-
-            # 🌟 1. ท่าไม้ตาย: ถอนรากถอนโคนซาก Docker เก่าที่ทำให้ระบบเอ๋อ!
-            sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
-            sudo apt-get update -y
-
-            # 🌟 2. ลง Docker ใหม่แบบ Official (รับประกันว่าได้ Compose V2 แน่นอน)
-            echo "🐳 Installing official Docker Engine..."
-            curl -fsSL https://get.docker.com -o get-docker.sh
-            sudo sh get-docker.sh
-            sudo usermod -aG docker adminuser
-
-            # 🌟 3. ปลดล็อกและบังคับปลุก Service ให้ตื่น
-            sudo systemctl unmask docker.service docker.socket || true
-            sudo systemctl daemon-reload
-            sudo systemctl restart docker.socket
-            sudo systemctl restart docker
-            sudo systemctl enable docker
-
-            # 🌟 4. รันโปรเจคแบบล้าง Cache 100%
             cd /home/adminuser/my-web
+
+            wait_for_apt() {
+              while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
+              while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
+            }
+
+            if ! command -v docker &> /dev/null; then
+              export DEBIAN_FRONTEND=noninteractive
+              wait_for_apt
+              sudo apt-get update -y
+              sudo apt-get install -y docker.io docker-compose-plugin
+              sudo systemctl start docker
+              sudo systemctl enable docker
+              sudo usermod -aG docker adminuser
+            fi
+
+            # 🌟 จุดที่ 3: บังคับล้าง Cache ก่อนรัน
             sudo docker compose down -v || true
             sudo docker compose build --no-cache
             sudo docker compose up -d
             sleep 10
+            sudo docker compose logs web
 
   # ==========================================
   # 🇭🇰 DEPLOY SECONDARY (HONG KONG)
   # ==========================================
   deploy-hk:
-    needs: deploy-sg # รอ SG เสร็จก่อน
+    needs: deploy-sg 
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -112,69 +103,59 @@ jobs:
       - run: terraform init
       - run: terraform apply -auto-approve
 
-      # 🌟 1. ดึง IP ของ VM ฮ่องกง
       - name: Get HK VM Public IP
         id: get_ip
         run: echo "HK_IP=$(terraform output -raw secondary_public_ip)" >> $GITHUB_ENV
 
-      # 🌟 2. สร้างโฟลเดอร์รอไว้
-      - name: Create Web Directory
+      # 🌟 จุดที่ 1: สร้างโฟลเดอร์เสร็จปุ๊บ สั่งลบไฟล์เก่าทิ้งให้เหี้ยน
+      - name: Create and Clean Web Directory
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ env.HK_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: mkdir -p /home/adminuser/my-web
+          script: |
+            mkdir -p /home/adminuser/my-web
+            rm -rf /home/adminuser/my-web/*
+            rm -rf /home/adminuser/my-web/.* 2>/dev/null || true
 
-      # 🌟 3. โยนโฟลเดอร์ Next.js ไปที่ VM
+      # 🌟 จุดที่ 2: เอา /* ออก เพื่อให้ก๊อบปี้ไฟล์ทั้งหมดแบบไม่ตกหล่น
       - name: Copy Web Files to HK
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ env.HK_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "agss-web/*"
+          source: "agss-web"
           target: "/home/adminuser/my-web"
           strip_components: 1
 
-      # 🌟 4. รัน Docker Compose Build & Up (อัปเกรดเป็นท่า Official)
       - name: Run Docker Compose on HK
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ env.HK_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-      - name: Run Docker Compose on SG
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ env.SG_IP }}
-          username: adminuser
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "⏳ Waiting for Azure cloud-init to finish..."
-            cloud-init status --wait || true
-            while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
+            cd /home/adminuser/my-web
 
-            # 🌟 1. ท่าไม้ตาย: ถอนรากถอนโคนซาก Docker เก่าที่ทำให้ระบบเอ๋อ!
-            sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
-            sudo apt-get update -y
+            wait_for_apt() {
+              while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
+              while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
+            }
 
-            # 🌟 2. ลง Docker ใหม่แบบ Official (รับประกันว่าได้ Compose V2 แน่นอน)
-            echo "🐳 Installing official Docker Engine..."
-            curl -fsSL https://get.docker.com -o get-docker.sh
-            sudo sh get-docker.sh
-            sudo usermod -aG docker adminuser
+            if ! command -v docker &> /dev/null; then
+              export DEBIAN_FRONTEND=noninteractive
+              wait_for_apt 
+              sudo apt-get update -y
+              sudo apt-get install -y docker.io docker-compose-plugin
+              sudo usermod -aG docker adminuser
+            fi
 
-            # 🌟 3. ปลดล็อกและบังคับปลุก Service ให้ตื่น
-            sudo systemctl unmask docker.service docker.socket || true
-            sudo systemctl daemon-reload
-            sudo systemctl restart docker.socket
-            sudo systemctl restart docker
+            sudo systemctl start docker
             sudo systemctl enable docker
 
-            # 🌟 4. รันโปรเจคแบบล้าง Cache 100%
-            cd /home/adminuser/my-web
+            # 🌟 จุดที่ 3: บังคับล้าง Cache ก่อนรัน
             sudo docker compose down -v || true
             sudo docker compose build --no-cache
             sudo docker compose up -d
-            sleep 10
