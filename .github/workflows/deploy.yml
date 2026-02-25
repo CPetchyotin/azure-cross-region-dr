@@ -1,7 +1,7 @@
 name: Deploy Azure DR System
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: #ให้กดปุ่มรันเองไม่รันมั่วตอน Push
 
 permissions:
   contents: read
@@ -29,31 +29,32 @@ jobs:
       - run: terraform init
       - run: terraform apply -auto-approve
 
+      # 🌟 1. ดึง IP ของ VM สิงคโปร์
       - name: Get SG VM Public IP
         id: get_ip
         run: echo "SG_IP=$(terraform output -raw primary_public_ip)" >> $GITHUB_ENV
 
-      # 🌟 1. สร้างโฟลเดอร์ และ "ล้างบางไฟล์เก่าทิ้งให้เกลี้ยง"
-      - name: Clean and Create Web Directory
+      # 🌟 2. สร้างโฟลเดอร์รอไว้
+      - name: Create Web Directory
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ env.SG_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            mkdir -p /home/adminuser/my-web
-            rm -rf /home/adminuser/my-web/* rm -rf /home/adminuser/my-web/.* 2>/dev/null || true
+          script: mkdir -p /home/adminuser/my-web
 
+      # 🌟 3. โยนโฟลเดอร์ Next.js ไปที่ VM
       - name: Copy Web Files to SG
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ env.SG_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "agss-web"
+          source: "agss-web/*"
           target: "/home/adminuser/my-web"
           strip_components: 1
 
+      # 🌟 4. รัน Docker Compose Build & Up
       - name: Run Docker Compose on SG
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -63,33 +64,35 @@ jobs:
           script: |
             cd /home/adminuser/my-web
 
-            # 🌟 2. พระเอกของเรา! สั่งให้รอกระบวนการของ Azure ทำงานให้เสร็จก่อน
-            echo "⏳ Waiting for Azure cloud-init to finish..."
-            cloud-init status --wait || true
-            while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
-            while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
+            # 🌟 พระเอกของเรา: ฟังก์ชันเช็คและรอให้ระบบหลังบ้านปลดล็อก
+            wait_for_apt() {
+              while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
+              while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
+            }
 
-            if ! command -v docker &> /dev/null || ! docker compose version &> /dev/null; then
-                echo "🐳 Installing official Docker Engine..."
-                curl -fsSL https://get.docker.com -o get-docker.sh
-                sudo sh get-docker.sh
-                sudo usermod -aG docker adminuser
+            # เช็คว่ามี Docker หรือยัง ถ้ายังไม่มีให้รอคิวแล้วค่อยลง
+            if ! command -v docker &> /dev/null; then
+              export DEBIAN_FRONTEND=noninteractive
+              
+              wait_for_apt # 🌟 สั่งให้รอก่อนเริ่มอัปเดต
+              
+              sudo apt-get update -y
+              sudo apt-get install -y docker.io docker-compose-plugin
+              sudo systemctl start docker
+              sudo systemctl enable docker
+              sudo usermod -aG docker adminuser
             fi
-            
-            sudo systemctl daemon-reload
-            sudo systemctl restart docker
-            sudo systemctl status docker --no-pager || sudo journalctl -xe | tail -n 20
-            
-            sudo docker compose down -v || true
-            sudo docker compose build --no-cache
-            sudo docker compose up -d
-            sleep 10
 
+            # รัน Docker Compose (เรียบง่ายและคลีนเหมือนเดิม)
+            sudo docker compose down || true
+            sudo docker compose up -d --build
+            sleep 10 # รอให้คอนเทนเนอร์ทำงานแป๊บนึง
+            sudo docker compose logs web
   # ==========================================
   # 🇭🇰 DEPLOY SECONDARY (HONG KONG)
   # ==========================================
   deploy-hk:
-    needs: deploy-sg
+    needs: deploy-sg # รอ SG เสร็จก่อน
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -101,32 +104,32 @@ jobs:
       - run: terraform init
       - run: terraform apply -auto-approve
 
+      # 🌟 1. ดึง IP ของ VM ฮ่องกง
       - name: Get HK VM Public IP
         id: get_ip
         run: echo "HK_IP=$(terraform output -raw secondary_public_ip)" >> $GITHUB_ENV
 
-      # 🌟 1. สร้างโฟลเดอร์ และ "ล้างบางไฟล์เก่าทิ้งให้เกลี้ยง"
-      - name: Clean and Create Web Directory
+      # 🌟 2. สร้างโฟลเดอร์รอไว้
+      - name: Create Web Directory
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ env.HK_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            mkdir -p /home/adminuser/my-web
-            rm -rf /home/adminuser/my-web/*
-            rm -rf /home/adminuser/my-web/.* 2>/dev/null || true
+          script: mkdir -p /home/adminuser/my-web
 
+      # 🌟 3. โยนโฟลเดอร์ Next.js ไปที่ VM
       - name: Copy Web Files to HK
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ env.HK_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "agss-web"
+          source: "agss-web/*"
           target: "/home/adminuser/my-web"
           strip_components: 1
 
+      # 🌟 4. รัน Docker Compose Build & Up
       - name: Run Docker Compose on HK
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -136,23 +139,25 @@ jobs:
           script: |
             cd /home/adminuser/my-web
 
-            # 🌟 2. พระเอกของเรา! สั่งให้รอกระบวนการของ Azure ทำงานให้เสร็จก่อน
-            echo "⏳ Waiting for Azure cloud-init to finish..."
-            cloud-init status --wait || true
-            while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
-            while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
+            # 🌟 พระเอกของเรา: ฟังก์ชันเช็คและรอให้ระบบหลังบ้านปลดล็อก
+            wait_for_apt() {
+              while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
+              while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
+            }
 
-            if ! command -v docker &> /dev/null || ! docker compose version &> /dev/null; then
-                echo "🐳 Installing official Docker Engine..."
-                curl -fsSL https://get.docker.com -o get-docker.sh
-                sudo sh get-docker.sh
-                sudo usermod -aG docker adminuser
+            # 1. เช็คว่ามี Docker หรือยัง ถ้ายังไม่มีให้รอคิวแล้วค่อยลง
+            if ! command -v docker &> /dev/null; then
+              export DEBIAN_FRONTEND=noninteractive
+              wait_for_apt # 🌟 สั่งให้รอก่อนเริ่มอัปเดต
+              sudo apt-get update -y
+              sudo apt-get install -y docker.io docker-compose-plugin
+              sudo usermod -aG docker adminuser
             fi
-            
-            sudo systemctl daemon-reload
-            sudo systemctl restart docker
-            sudo systemctl status docker --no-pager || sudo journalctl -xe | tail -n 20
-            
-            sudo docker compose down -v || true
-            sudo docker compose build --no-cache
-            sudo docker compose up -d
+
+            # 🌟 2. ย้ายออกมาตรงนี้! บังคับปลุก Docker Service ให้ทำงานเสมอ ไม่ว่าจะเคยลงไว้แล้วหรือไม่
+            sudo systemctl start docker
+            sudo systemctl enable docker
+
+            # 3. รัน Docker Compose (เรียบง่ายและคลีนเหมือนเดิม)
+            sudo docker compose down || true
+            sudo docker compose up -d --build
