@@ -33,22 +33,24 @@ jobs:
         id: get_ip
         run: echo "SG_IP=$(terraform output -raw primary_public_ip)" >> $GITHUB_ENV
 
-      - name: Create Web Directory
+      # 🌟 1. สร้างโฟลเดอร์ และ "ล้างบางไฟล์เก่าทิ้งให้เกลี้ยง"
+      - name: Clean and Create Web Directory
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ env.SG_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: mkdir -p /home/adminuser/my-web
+          script: |
+            mkdir -p /home/adminuser/my-web
+            rm -rf /home/adminuser/my-web/* rm -rf /home/adminuser/my-web/.* 2>/dev/null || true
 
-      # 🌟 แก้จุดที่ 1: เอา /* ออก เพื่อก๊อบปี้ไฟล์ทุกอย่าง (รวมไฟล์ซ่อน) ไปให้ครบ
       - name: Copy Web Files to SG
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ env.SG_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "agss-web" 
+          source: "agss-web"
           target: "/home/adminuser/my-web"
           strip_components: 1
 
@@ -61,8 +63,14 @@ jobs:
           script: |
             cd /home/adminuser/my-web
 
+            # 🌟 2. พระเอกของเรา! สั่งให้รอกระบวนการของ Azure ทำงานให้เสร็จก่อน
+            echo "⏳ Waiting for Azure cloud-init to finish..."
+            cloud-init status --wait || true
+            while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
+            while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
+
             if ! command -v docker &> /dev/null || ! docker compose version &> /dev/null; then
-                echo "🐳 Docker or Compose V2 not found. Installing official Docker Engine..."
+                echo "🐳 Installing official Docker Engine..."
                 curl -fsSL https://get.docker.com -o get-docker.sh
                 sudo sh get-docker.sh
                 sudo usermod -aG docker adminuser
@@ -72,12 +80,10 @@ jobs:
             sudo systemctl restart docker
             sudo systemctl status docker --no-pager || sudo journalctl -xe | tail -n 20
             
-            # 🌟 แก้จุดที่ 2: บังคับล้าง Cache (-v) และห้ามดึง Cache เก่ามาใช้ (--no-cache)
             sudo docker compose down -v || true
             sudo docker compose build --no-cache
             sudo docker compose up -d
             sleep 10
-            sudo docker compose logs web
 
   # ==========================================
   # 🇭🇰 DEPLOY SECONDARY (HONG KONG)
@@ -99,22 +105,25 @@ jobs:
         id: get_ip
         run: echo "HK_IP=$(terraform output -raw secondary_public_ip)" >> $GITHUB_ENV
 
-      - name: Create Web Directory
+      # 🌟 1. สร้างโฟลเดอร์ และ "ล้างบางไฟล์เก่าทิ้งให้เกลี้ยง"
+      - name: Clean and Create Web Directory
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ env.HK_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: mkdir -p /home/adminuser/my-web
+          script: |
+            mkdir -p /home/adminuser/my-web
+            rm -rf /home/adminuser/my-web/*
+            rm -rf /home/adminuser/my-web/.* 2>/dev/null || true
 
-      # 🌟 แก้จุดที่ 1: เอา /* ออก เหมือน SG
       - name: Copy Web Files to HK
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ env.HK_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "agss-web" 
+          source: "agss-web"
           target: "/home/adminuser/my-web"
           strip_components: 1
 
@@ -127,8 +136,14 @@ jobs:
           script: |
             cd /home/adminuser/my-web
 
-            if ! command -v docker &> /dev/null; then
-                echo "🐳 Docker not found. Installing official Docker Engine..."
+            # 🌟 2. พระเอกของเรา! สั่งให้รอกระบวนการของ Azure ทำงานให้เสร็จก่อน
+            echo "⏳ Waiting for Azure cloud-init to finish..."
+            cloud-init status --wait || true
+            while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
+            while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
+
+            if ! command -v docker &> /dev/null || ! docker compose version &> /dev/null; then
+                echo "🐳 Installing official Docker Engine..."
                 curl -fsSL https://get.docker.com -o get-docker.sh
                 sudo sh get-docker.sh
                 sudo usermod -aG docker adminuser
@@ -138,7 +153,6 @@ jobs:
             sudo systemctl restart docker
             sudo systemctl status docker --no-pager || sudo journalctl -xe | tail -n 20
             
-            # 🌟 แก้จุดที่ 2: บังคับล้าง Cache (-v) และห้ามดึง Cache เก่ามาใช้ (--no-cache)
             sudo docker compose down -v || true
             sudo docker compose build --no-cache
             sudo docker compose up -d
