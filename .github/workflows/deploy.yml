@@ -1,7 +1,7 @@
 name: Deploy Azure DR System
 
 on:
-  workflow_dispatch: #ให้กดปุ่มรันเองไม่รันมั่วตอน Push
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -29,12 +29,10 @@ jobs:
       - run: terraform init
       - run: terraform apply -auto-approve
 
-      # 🌟 1. ดึง IP ของ VM สิงคโปร์
       - name: Get SG VM Public IP
         id: get_ip
         run: echo "SG_IP=$(terraform output -raw primary_public_ip)" >> $GITHUB_ENV
 
-      # 🌟 2. สร้างโฟลเดอร์รอไว้
       - name: Create Web Directory
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -43,18 +41,17 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: mkdir -p /home/adminuser/my-web
 
-      # 🌟 3. โยนโฟลเดอร์ Next.js ไปที่ VM
+      # 🌟 แก้จุดที่ 1: เอา /* ออก เพื่อก๊อบปี้ไฟล์ทุกอย่าง (รวมไฟล์ซ่อน) ไปให้ครบ
       - name: Copy Web Files to SG
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ env.SG_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "agss-web/*"
+          source: "agss-web" 
           target: "/home/adminuser/my-web"
           strip_components: 1
 
-      # 🌟 4. รัน Docker Compose Build & Up
       - name: Run Docker Compose on SG
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -64,7 +61,6 @@ jobs:
           script: |
             cd /home/adminuser/my-web
 
-            # 🌟 1. เช็คก่อนว่ามี Docker ไหม ถ้าไม่มีให้ลงแบบ Official (ชัวร์สุด ไม่ติด apt lock)
             if ! command -v docker &> /dev/null || ! docker compose version &> /dev/null; then
                 echo "🐳 Docker or Compose V2 not found. Installing official Docker Engine..."
                 curl -fsSL https://get.docker.com -o get-docker.sh
@@ -72,16 +68,14 @@ jobs:
                 sudo usermod -aG docker adminuser
             fi
             
-            # 🌟 2. บังคับ Restart Service ให้สดใหม่เสมอ (แก้ปัญหา Daemon หลับ)
             sudo systemctl daemon-reload
             sudo systemctl restart docker
-            
-            # 🌟 3. เช็คสถานะ ถ้าพังให้พ่น Log ออกมาดูเลย
             sudo systemctl status docker --no-pager || sudo journalctl -xe | tail -n 20
             
-            # 🌟 4. รันโปรเจคด้วย Compose V2
-            sudo docker compose down || true
-            sudo docker compose up -d --build
+            # 🌟 แก้จุดที่ 2: บังคับล้าง Cache (-v) และห้ามดึง Cache เก่ามาใช้ (--no-cache)
+            sudo docker compose down -v || true
+            sudo docker compose build --no-cache
+            sudo docker compose up -d
             sleep 10
             sudo docker compose logs web
 
@@ -89,7 +83,7 @@ jobs:
   # 🇭🇰 DEPLOY SECONDARY (HONG KONG)
   # ==========================================
   deploy-hk:
-    needs: deploy-sg # รอ SG เสร็จก่อน
+    needs: deploy-sg
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -101,12 +95,10 @@ jobs:
       - run: terraform init
       - run: terraform apply -auto-approve
 
-      # 🌟 1. ดึง IP ของ VM ฮ่องกง
       - name: Get HK VM Public IP
         id: get_ip
         run: echo "HK_IP=$(terraform output -raw secondary_public_ip)" >> $GITHUB_ENV
 
-      # 🌟 2. สร้างโฟลเดอร์รอไว้
       - name: Create Web Directory
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -115,18 +107,17 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: mkdir -p /home/adminuser/my-web
 
-      # 🌟 3. โยนโฟลเดอร์ Next.js ไปที่ VM
+      # 🌟 แก้จุดที่ 1: เอา /* ออก เหมือน SG
       - name: Copy Web Files to HK
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ env.HK_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "agss-web/*"
+          source: "agss-web" 
           target: "/home/adminuser/my-web"
           strip_components: 1
 
-      # 🌟 4. รัน Docker Compose Build & Up (อัปเกรดเป็นท่า Official)
       - name: Run Docker Compose on HK
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -136,7 +127,6 @@ jobs:
           script: |
             cd /home/adminuser/my-web
 
-            # 🌟 1. เช็คก่อนว่ามี Docker ไหม ถ้าไม่มีให้ลงแบบ Official (ชัวร์สุด ไม่ติด apt lock)
             if ! command -v docker &> /dev/null; then
                 echo "🐳 Docker not found. Installing official Docker Engine..."
                 curl -fsSL https://get.docker.com -o get-docker.sh
@@ -144,13 +134,11 @@ jobs:
                 sudo usermod -aG docker adminuser
             fi
             
-            # 🌟 2. บังคับ Restart Service ให้สดใหม่เสมอ
             sudo systemctl daemon-reload
             sudo systemctl restart docker
-            
-            # 🌟 3. เช็คสถานะ ถ้าพังให้พ่น Log ออกมาดูเลย (Senior Debugging)
             sudo systemctl status docker --no-pager || sudo journalctl -xe | tail -n 20
             
-            # 🌟 4. รันโปรเจคด้วย Compose V2
-            sudo docker compose down || true
-            sudo docker compose up -d --build
+            # 🌟 แก้จุดที่ 2: บังคับล้าง Cache (-v) และห้ามดึง Cache เก่ามาใช้ (--no-cache)
+            sudo docker compose down -v || true
+            sudo docker compose build --no-cache
+            sudo docker compose up -d
