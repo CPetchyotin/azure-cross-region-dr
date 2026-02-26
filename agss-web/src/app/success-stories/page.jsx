@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -22,18 +22,6 @@ import { cases } from "@/data/mockData";
 
 export default function SuccessStoriesPage() {
   const [selectedCase, setSelectedCase] = useState(null);
-
-  // ป้องกันการ Scroll หน้าเว็บตอนเปิด Modal
-  useEffect(() => {
-    if (selectedCase) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [selectedCase]);
 
   // ฟังก์ชันสลับหน้า เปิด-ปิด Case และดึงหน้าจอกลับไปจุดบนสุด
   const handleToggleCase = (id) => {
@@ -185,7 +173,7 @@ export default function SuccessStoriesPage() {
       <div className="pt-24 pb-32 bg-slate-50 min-h-screen w-full font-sans text-slate-800">
         <div className="container mx-auto px-6 md:px-12 max-w-[1200px]">
           
-          {/* ปุ่มย้อนกลับที่ดูพรีเมียมและเรียบง่าย */}
+          {/* ปุ่มย้อนกลับ */}
           <button
             onClick={() => handleToggleCase(null)}
             className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-cyan-600 mb-8 transition-colors group"
@@ -194,13 +182,11 @@ export default function SuccessStoriesPage() {
             Back to Case Studies
           </button>
 
-          {/* ดีไซน์ Hero Image แบบใหม่ สวยงามเหมือนเรฟ */}
+          {/* ดีไซน์ Hero Image */}
           <div className="animate-in fade-in slide-in-from-bottom-8 duration-500">
             
-            {/* โครงสร้างรูปภาพขอบมน มีพื้นที่สวยงาม */}
             <div className="w-full h-[350px] md:h-[450px] relative rounded-[2rem] overflow-hidden mb-12 shadow-xl border border-slate-200/50">
               <img src={data.image} alt={data.title} className="w-full h-full object-cover" />
-              {/* ไล่สีให้ข้อความด้านล่างเด่นขึ้น */}
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/30 to-transparent"></div>
               
               <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12">
@@ -217,7 +203,6 @@ export default function SuccessStoriesPage() {
               </div>
             </div>
 
-            {/* ส่วนเนื้อหาแบ่ง 2 คอลัมน์ (ซ้ายอ่านเนื้อหา ขวาสรุปและปุ่ม CTA) */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
               <div className="lg:col-span-2 space-y-12">
                 <section>
@@ -279,19 +264,19 @@ export default function SuccessStoriesPage() {
                     {/* ปุ่ม Achieve Similar Results ที่แก้ไขให้ลูกศรไม่จมและข้อความไม่ตกขอบ */}
                     <Link 
                       href="/contact" 
-                      className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-slate-900 px-5 py-4 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_25px_rgba(6,182,212,0.25)] active:scale-[0.98] overflow-hidden"
+                      className="group relative flex w-full items-center justify-between rounded-2xl bg-slate-900 px-6 py-5 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_25px_rgba(6,182,212,0.25)] active:scale-[0.98] overflow-hidden"
                     >
                       {/* เลเยอร์สี Gradient ที่จะสว่างขึ้นมาตอน Hover */}
                       <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 to-blue-600 opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100"></div>
                       
-                      {/* ข้อความ (อนุญาตให้ตัดบรรทัดได้ถ้าจอเล็กมากๆ เพื่อป้องกันการดันลูกศรตกขอบ) */}
-                      <span className="relative z-10 font-bold text-white text-sm md:text-[15px] tracking-wide text-center leading-snug">
+                      {/* ข้อความชิดซ้าย (ใช้ whitespace-nowrap ห้ามตัดบรรทัดเด็ดขาด) */}
+                      <span className="relative z-10 font-bold text-white text-sm md:text-[15px] tracking-wide whitespace-nowrap">
                         Achieve Similar Results
                       </span>
                       
-                      {/* ไอคอนลูกศรในวงกลมชิดขวา (shrink-0 ป้องกันการโดนบีบย่อขนาด) */}
+                      {/* ไอคอนลูกศรในวงกลมชิดขวา ดูแพงขึ้น */}
                       <div className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors duration-300 group-hover:bg-white group-hover:text-blue-600">
-                        <ArrowRight size={16} strokeWidth={2.5} className="transform transition-transform duration-300 group-hover:translate-x-1" />
+                        <ArrowRight size={16} strokeWidth={2.5} className="transform transition-transform duration-300 group-hover:translate-x-0.5" />
                       </div>
                     </Link>
 
