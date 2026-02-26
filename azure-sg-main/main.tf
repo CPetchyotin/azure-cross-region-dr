@@ -121,12 +121,12 @@ resource "azurerm_network_interface_security_group_association" "nic_nsg_assoc" 
 }
 
 resource "azurerm_container_registry" "acr" {
-  name                     = "acragss2026" 
-  resource_group_name      = azurerm_resource_group.rg_main.name
-  location                 = azurerm_resource_group.rg_main.location
-  sku                      = "Basic"
-  admin_enabled            = true
-} 
+  name                = "acragss2026"
+  resource_group_name = azurerm_resource_group.rg_main.name
+  location            = azurerm_resource_group.rg_main.location
+  sku                 = "Basic"
+  admin_enabled       = true
+}
 
 output "acr_login_server" {
   value = azurerm_container_registry.acr.login_server
@@ -135,6 +135,30 @@ output "acr_admin_username" {
   value = azurerm_container_registry.acr.admin_username
 }
 output "acr_admin_password" {
-  value = azurerm_container_registry.acr.admin_password
+  value     = azurerm_container_registry.acr.admin_password
   sensitive = true
 }
+
+resource "azurerm_cosmosdb_account" "db" {
+  name                = "cosmosdbagss2026"
+  location            = azurerm_resource_group.rg_main.location
+  resource_group_name = azurerm_resource_group.rg_main.name
+  offer_type          = "Standard"
+  kind                = "GlobalDocumentDB"
+  free_tier_enabled   = true
+
+  consistency_policy {
+    consistency_level = "Session"
+  }
+
+  geo_location {
+    location          = azurerm_resource_group.rg_main.location
+    failover_priority = 0
+  }
+    geo_location {
+  location          = "East Asia"
+  failover_priority = 1
+}
+}
+
+
