@@ -14,7 +14,7 @@ resource "azurerm_traffic_manager_profile" "tm" {
     path                         = "/"
     interval_in_seconds          = 10
     timeout_in_seconds           = 5
-    tolerated_number_of_failures = 2
+    tolerated_number_of_failures = 1
   }
 }
 resource "azurerm_traffic_manager_azure_endpoint" "sg_endpoint" {
