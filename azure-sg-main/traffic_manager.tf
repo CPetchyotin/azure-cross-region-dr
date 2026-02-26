@@ -5,7 +5,7 @@ resource "azurerm_traffic_manager_profile" "tm" {
 
   dns_config {
     relative_name = "agss-app-service"
-    ttl           = 30
+    ttl           = 10
   }
 
   monitor_config {
@@ -13,7 +13,7 @@ resource "azurerm_traffic_manager_profile" "tm" {
     port                         = 80
     path                         = "/"
     interval_in_seconds          = 10
-    timeout_in_seconds           = 7
+    timeout_in_seconds           = 5
     tolerated_number_of_failures = 2
   }
 }
