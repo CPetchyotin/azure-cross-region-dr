@@ -155,11 +155,15 @@ resource "azurerm_cosmosdb_account" "db" {
     location          = azurerm_resource_group.rg_main.location
     failover_priority = 0
   }
-    geo_location {
-  location          = "East Asia"
-  failover_priority = 1
-}
+  geo_location {
+    location          = "East Asia"
+    failover_priority = 1
+  }
 }
 
+output "cosmosdb_connection_string" {
+  value     = azurerm_cosmosdb_account.db.primary_sql_connection_string
+  sensitive = true
+}
 
 
