@@ -101,27 +101,26 @@ jobs:
               while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
             }
 
+            # 🌟 แก้ไข: ใช้สคริปต์ติดตั้ง Official จากหน้าเว็บ Docker โดยตรง
             if ! command -v docker &> /dev/null; then
               export DEBIAN_FRONTEND=noninteractive
               wait_for_apt
-              sudo apt-get update -y
-              sudo apt-get install -y docker.io docker-compose-plugin
+              echo "🐳 Installing official Docker Engine..."
+              curl -fsSL https://get.docker.com -o get-docker.sh
+              sudo sh get-docker.sh
               sudo usermod -aG docker adminuser
             fi
 
             sudo systemctl start docker
             sudo systemctl enable docker
 
-            # 🌟 ท่าไม้ตายปราบผี: ลบ Image และ Cache เก่าทิ้งให้เหี้ยน!
+            # ล้างของเก่าและบังคับ Build ใหม่
             sudo docker compose down -v || true
             sudo docker system prune -a --volumes -f
-            
-            # 🌟 บังคับ Build โค้ดใหม่ 100%
             sudo docker compose build --no-cache
             sudo docker compose up -d
             sleep 10
             sudo docker compose logs web
-
   # ==========================================
   # 🏗️ 3. INFRASTRUCTURE: HONG KONG (HK)
   # ==========================================
@@ -191,21 +190,23 @@ jobs:
               while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
             }
 
+            # 🌟 ใช้สคริปต์ติดตั้ง Official จากหน้าเว็บ Docker เหมือนฝั่ง SG
             if ! command -v docker &> /dev/null; then
               export DEBIAN_FRONTEND=noninteractive
-              wait_for_apt 
-              sudo apt-get update -y
-              sudo apt-get install -y docker.io docker-compose-plugin
+              wait_for_apt
+              echo "🐳 Installing official Docker Engine..."
+              curl -fsSL https://get.docker.com -o get-docker.sh
+              sudo sh get-docker.sh
               sudo usermod -aG docker adminuser
             fi
 
             sudo systemctl start docker
             sudo systemctl enable docker
 
-            # 🌟 ท่าไม้ตายปราบผี: ลบ Image และ Cache เก่าทิ้งให้เหี้ยน!
+            # ล้างของเก่าและบังคับ Build ใหม่
             sudo docker compose down -v || true
             sudo docker system prune -a --volumes -f
-            
-            # 🌟 บังคับ Build โค้ดใหม่ 100%
             sudo docker compose build --no-cache
             sudo docker compose up -d
+            sleep 10
+            sudo docker compose logs web
