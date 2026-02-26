@@ -109,6 +109,31 @@ resource "azurerm_network_security_group" "nsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
+  # 📊 เปิดพอร์ตให้ Grafana (ฮ่องกง)
+  security_rule {
+    name                       = "Allow-Grafana"
+    priority                   = 120
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "8080"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  # 🧠 เปิดพอร์ตให้ Prometheus (ฮ่องกง)
+  security_rule {
+    name                       = "Allow-Prometheus"
+    priority                   = 130
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "9090"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
 }
 resource "azurerm_network_interface_security_group_association" "nic_nsg_assoc" {
   network_interface_id      = azurerm_network_interface.nic.id

@@ -4,19 +4,19 @@ on:
   workflow_dispatch:
     inputs:
       infra_sg:
-        description: '1. 🏗️ [SG] Deploy Infrastructure (Terraform)'
+        description: "1. 🏗️ [SG] Deploy Infrastructure (Terraform)"
         type: boolean
         default: false
       app_sg:
-        description: '2. 🐳 [SG] Deploy Application (Docker & Next.js)'
+        description: "2. 🐳 [SG] Deploy Application (Docker & Next.js)"
         type: boolean
         default: true
       infra_hk:
-        description: '3. 🏗️ [HK] Deploy Infrastructure (Terraform)'
+        description: "3. 🏗️ [HK] Deploy Infrastructure (Terraform)"
         type: boolean
         default: false
       app_hk:
-        description: '4. 🐳 [HK] Deploy Application (Docker & Next.js)'
+        description: "4. 🐳 [HK] Deploy Application (Docker & Next.js)"
         type: boolean
         default: false
 
@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       # 🌟 ดึง IP จาก Terraform ออกมาเพื่อใช้เชื่อมต่อ
       - uses: hashicorp/setup-terraform@v3
       - name: Get SG IP from Terraform
@@ -83,19 +83,23 @@ jobs:
           host: ${{ env.SG_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "agss-web" 
+          source: "agss-web"
           target: "/home/adminuser/my-web"
           strip_components: 1
 
       - name: Run Docker Compose on SG
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          GRAFANA_PASSWORD: ${{ secrets.GRAFANA_PASSWORD }}
         with:
           host: ${{ env.SG_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: GRAFANA_PASSWORD
           script: |
             cd /home/adminuser/my-web
 
+            echo "GRAFANA_PASSWORD=$GRAFANA_PASSWORD" > .env
             wait_for_apt() {
               while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
               while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
@@ -117,8 +121,8 @@ jobs:
             # ล้างของเก่าและบังคับ Build ใหม่
             sudo docker compose down -v || true
             sudo docker system prune -a --volumes -f
-            sudo docker compose build --no-cache
-            sudo docker compose up -d
+            sudo docker compose build --env-file .env build --no-cache
+            sudo docker compose up --env-file .env up -d
             sleep 10
             sudo docker compose logs web
   # ==========================================
@@ -146,7 +150,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       # 🌟 ดึง IP จาก Terraform ออกมาเพื่อใช้เชื่อมต่อ
       - uses: hashicorp/setup-terraform@v3
       - name: Get HK IP from Terraform
@@ -178,12 +182,17 @@ jobs:
 
       - name: Run Docker Compose on HK
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          GRAFANA_PASSWORD: ${{ secrets.GRAFANA_PASSWORD }}
         with:
           host: ${{ env.HK_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: GRAFANA_PASSWORD
           script: |
             cd /home/adminuser/my-web
+
+            echo "GRAFANA_PASSWORD=$GRAFANA_PASSWORD" > .env
 
             wait_for_apt() {
               while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
@@ -206,7 +215,7 @@ jobs:
             # ล้างของเก่าและบังคับ Build ใหม่
             sudo docker compose down -v || true
             sudo docker system prune -a --volumes -f
-            sudo docker compose build --no-cache
-            sudo docker compose up -d
+            sudo docker compose --env-file .env build --no-cache
+            sudo docker compose --env-file .env up -d
             sleep 10
             sudo docker compose logs web
