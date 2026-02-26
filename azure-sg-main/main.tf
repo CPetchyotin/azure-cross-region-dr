@@ -156,7 +156,7 @@ resource "azurerm_cosmosdb_account" "db" {
     failover_priority = 0
   }
   geo_location {
-    location          = "East Asia"
+    location          = "Japan East"
     failover_priority = 1
   }
 }
