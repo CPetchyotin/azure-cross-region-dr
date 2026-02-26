@@ -31,8 +31,8 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
 # เปิด Port 80 (ให้ตรงกับ server.js เดิม)
-EXPOSE 80
-ENV PORT=80
+EXPOSE 3000
+ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # คำสั่งเริ่มทำงานเมื่อเปิดกล่อง (ใช้ไฟล์ server.js ที่ Next.js สร้างให้)

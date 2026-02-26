@@ -85,9 +85,6 @@ resource "azurerm_linux_virtual_machine" "vm" {
   tags = {
     environment = "Production", Role = "Primary-webserver"
   }
-  custom_data = base64encode(templatefile("${path.module}/../install_docker.sh", {
-    region_message = "Hello from Singapore " # 
-  }))
 }
 resource "azurerm_network_security_group" "nsg" {
   name                = "nsg-allow-traffic"

@@ -1,7 +1,24 @@
-name: Deploy Azure DR System
+name: Deploy Azure DR System (Enterprise Mode)
 
 on:
-  workflow_dispatch: #ให้กดปุ่มรันเองไม่รันมั่วตอน Push
+  workflow_dispatch:
+    inputs:
+      infra_sg:
+        description: '1. 🏗️ [SG] Deploy Infrastructure (Terraform)'
+        type: boolean
+        default: false
+      app_sg:
+        description: '2. 🐳 [SG] Deploy Application (Docker & Next.js)'
+        type: boolean
+        default: true
+      infra_hk:
+        description: '3. 🏗️ [HK] Deploy Infrastructure (Terraform)'
+        type: boolean
+        default: false
+      app_hk:
+        description: '4. 🐳 [HK] Deploy Application (Docker & Next.js)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -15,9 +32,10 @@ env:
 
 jobs:
   # ==========================================
-  # 🇸🇬 DEPLOY PRIMARY (SINGAPORE)
+  # 🏗️ 1. INFRASTRUCTURE: SINGAPORE (SG)
   # ==========================================
-  deploy-sg:
+  deploy-infra-sg:
+    if: ${{ inputs.infra_sg }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -29,11 +47,25 @@ jobs:
       - run: terraform init
       - run: terraform apply -auto-approve
 
-      - name: Get SG VM Public IP
-        id: get_ip
-        run: echo "SG_IP=$(terraform output -raw primary_public_ip)" >> $GITHUB_ENV
+  # ==========================================
+  # 🐳 2. APPLICATION: SINGAPORE (SG)
+  # ==========================================
+  deploy-app-sg:
+    needs: deploy-infra-sg
+    if: ${{ always() && inputs.app_sg && !contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # 🌟 ดึง IP จาก Terraform ออกมาเพื่อใช้เชื่อมต่อ
+      - uses: hashicorp/setup-terraform@v3
+      - name: Get SG IP from Terraform
+        working-directory: ./azure-sg-main
+        run: |
+          terraform init
+          echo "SG_IP=$(terraform output -raw primary_public_ip)" >> $GITHUB_ENV
 
-      # 🌟 จุดที่ 1: สร้างโฟลเดอร์เสร็จปุ๊บ สั่งลบไฟล์เก่าทิ้งให้เหี้ยน
+      # 🌟 ล้างโฟลเดอร์เก่าทิ้งเตรียมรับโค้ดใหม่
       - name: Create and Clean Web Directory
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -45,7 +77,6 @@ jobs:
             rm -rf /home/adminuser/my-web/*
             rm -rf /home/adminuser/my-web/.* 2>/dev/null || true
 
-      # 🌟 จุดที่ 2: เอา /* ออก เพื่อให้ก๊อบปี้ไฟล์ทั้งหมดแบบไม่ตกหล่น
       - name: Copy Web Files to SG
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -75,23 +106,27 @@ jobs:
               wait_for_apt
               sudo apt-get update -y
               sudo apt-get install -y docker.io docker-compose-plugin
-              sudo systemctl start docker
-              sudo systemctl enable docker
               sudo usermod -aG docker adminuser
             fi
 
-            # 🌟 จุดที่ 3: บังคับล้าง Cache ก่อนรัน
+            sudo systemctl start docker
+            sudo systemctl enable docker
+
+            # 🌟 ท่าไม้ตายปราบผี: ลบ Image และ Cache เก่าทิ้งให้เหี้ยน!
             sudo docker compose down -v || true
+            sudo docker system prune -a --volumes -f
+            
+            # 🌟 บังคับ Build โค้ดใหม่ 100%
             sudo docker compose build --no-cache
             sudo docker compose up -d
             sleep 10
             sudo docker compose logs web
 
   # ==========================================
-  # 🇭🇰 DEPLOY SECONDARY (HONG KONG)
+  # 🏗️ 3. INFRASTRUCTURE: HONG KONG (HK)
   # ==========================================
-  deploy-hk:
-    needs: deploy-sg 
+  deploy-infra-hk:
+    if: ${{ inputs.infra_hk }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -103,11 +138,24 @@ jobs:
       - run: terraform init
       - run: terraform apply -auto-approve
 
-      - name: Get HK VM Public IP
-        id: get_ip
-        run: echo "HK_IP=$(terraform output -raw secondary_public_ip)" >> $GITHUB_ENV
+  # ==========================================
+  # 🐳 4. APPLICATION: HONG KONG (HK)
+  # ==========================================
+  deploy-app-hk:
+    needs: deploy-infra-hk
+    if: ${{ always() && inputs.app_hk && !contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      # 🌟 ดึง IP จาก Terraform ออกมาเพื่อใช้เชื่อมต่อ
+      - uses: hashicorp/setup-terraform@v3
+      - name: Get HK IP from Terraform
+        working-directory: ./azure-hk-secondary
+        run: |
+          terraform init
+          echo "HK_IP=$(terraform output -raw secondary_public_ip)" >> $GITHUB_ENV
 
-      # 🌟 จุดที่ 1: สร้างโฟลเดอร์เสร็จปุ๊บ สั่งลบไฟล์เก่าทิ้งให้เหี้ยน
       - name: Create and Clean Web Directory
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -119,7 +167,6 @@ jobs:
             rm -rf /home/adminuser/my-web/*
             rm -rf /home/adminuser/my-web/.* 2>/dev/null || true
 
-      # 🌟 จุดที่ 2: เอา /* ออก เพื่อให้ก๊อบปี้ไฟล์ทั้งหมดแบบไม่ตกหล่น
       - name: Copy Web Files to HK
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -155,7 +202,10 @@ jobs:
             sudo systemctl start docker
             sudo systemctl enable docker
 
-            # 🌟 จุดที่ 3: บังคับล้าง Cache ก่อนรัน
+            # 🌟 ท่าไม้ตายปราบผี: ลบ Image และ Cache เก่าทิ้งให้เหี้ยน!
             sudo docker compose down -v || true
+            sudo docker system prune -a --volumes -f
+            
+            # 🌟 บังคับ Build โค้ดใหม่ 100%
             sudo docker compose build --no-cache
             sudo docker compose up -d
