@@ -91,15 +91,17 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           GRAFANA_PASSWORD: ${{ secrets.GRAFANA_PASSWORD }}
+          COSMOS_CONNECTION_STRING: ${{ secrets.COSMOS_CONNECTION_STRING }}
         with:
           host: ${{ env.SG_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: GRAFANA_PASSWORD
+          envs: GRAFANA_PASSWORD,COSMOS_CONNECTION_STRING
           script: |
             cd /home/adminuser/my-web
 
             echo "GRAFANA_PASSWORD=$GRAFANA_PASSWORD" > .env
+            echo "COSMOS_CONNECTION_STRING=$COSMOS_CONNECTION_STRING" >> .env
             wait_for_apt() {
               while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
               while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
@@ -184,16 +186,17 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           GRAFANA_PASSWORD: ${{ secrets.GRAFANA_PASSWORD }}
+          COSMOS_CONNECTION_STRING: ${{ secrets.COSMOS_CONNECTION_STRING }}
         with:
           host: ${{ env.HK_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: GRAFANA_PASSWORD
+          envs: GRAFANA_PASSWORD,COSMOS_CONNECTION_STRING
           script: |
             cd /home/adminuser/my-web
 
             echo "GRAFANA_PASSWORD=$GRAFANA_PASSWORD" > .env
-
+            echo "COSMOS_CONNECTION_STRING=$COSMOS_CONNECTION_STRING" >> .env
             wait_for_apt() {
               while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
               while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
