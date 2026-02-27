@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useState } from 'react';
 import { CheckCircle, MapPin, Phone, Mail, Clock, MessageCircle, Loader2 } from 'lucide-react';
 
@@ -36,12 +36,22 @@ export default function ContactPage() {
     setStatus('loading');
 
     try {
-      // จำลองการใช้เวลาส่งข้อมูล (Mock API Delay) 1.5 วินาที
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      
-      // TODO: ใส่โค้ดเชื่อมต่อ API จริงที่นี่ 
-      // ตัวอย่าง: await fetch('/api/send-email', { method: 'POST', body: JSON.stringify(formData) });
-      console.log('Form data submitted:', formData);
+      // 🌟 ยิงข้อมูลไปหา API หลังบ้านของเรา (/api/contact)
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      // เช็คว่า API ตอบกลับมาว่าสำเร็จไหม (Status 200-299)
+      if (!res.ok) {
+        throw new Error('Failed to submit to database');
+      }
+
+      const result = await res.json();
+      console.log('Data saved successfully:', result);
 
       // เมื่อส่งสำเร็จ
       setStatus('success');
@@ -54,7 +64,7 @@ export default function ContactPage() {
         interests: []
       });
 
-      // ตั้งเวลาให้กลับมาแสดงฟอร์มใหม่หลังจาก 5 วินาที (ถ้าต้องการ)
+      // ตั้งเวลาให้กลับมาแสดงฟอร์มใหม่หลังจาก 5 วินาที
       setTimeout(() => setStatus('idle'), 5000);
 
     } catch (error) {
@@ -73,7 +83,7 @@ export default function ContactPage() {
             <span className="text-orange-500 font-bold uppercase tracking-wider text-sm mb-2 block">Start Your Journey</span>
             <h1 className="text-5xl font-black text-slate-900 mb-8 leading-tight">Get Your Free <br/>Initial Assessment</h1>
             <p className="text-lg text-slate-600 mb-10 leading-relaxed">
-              Ready to strengthen your maturity? Don't wait for a data breach or system failure. Fill out the form to get started with a consultation tailored to your factory's needs.
+             Ready to strengthen your maturity? Don&apos;t wait for a data breach or system failure. Fill out the form to get started with a consultation tailored to your factory&apos;s needs.
             </p>
             
             <div className="space-y-6">
@@ -292,7 +302,7 @@ export default function ContactPage() {
              {/* แผนที่ Google Maps (ใช้พื้นที่ 3 ส่วน เพื่อให้กว้างและดูชัด) */}
              <div className="lg:col-span-3 h-[500px] bg-slate-200 rounded-[2rem] overflow-hidden shadow-inner relative border border-slate-200">
                 <iframe 
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3875.83626884675!2d100.52843831483018!3d13.728346190362841!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x30e298d02df0824b%3A0xa61bd0b54f6dcde!2sSilom%20Complex!5e0!3m2!1sen!2sth!4v1680000000000!5m2!1sen!2sth" 
+                  src="https://maps.google.com/maps?q=191%20Silom%20Road,%20Bangrak,%20Bangkok%2010500&t=&z=15&ie=UTF8&iwloc=&output=embed" 
                   className="absolute inset-0 w-full h-full"
                   style={{ border: 0 }} 
                   allowFullScreen="" 
