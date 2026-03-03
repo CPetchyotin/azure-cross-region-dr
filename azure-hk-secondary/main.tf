@@ -80,6 +80,19 @@ resource "azurerm_linux_virtual_machine" "vm" {
     environment = "Disaster-Recovery"   #
     Role        = "Secondary-webserver" #
   }
+  custom_data = base64encode(<<-EOF
+    #!/bin/bash
+    
+    mkdir -p /home/adminuser/agss-web
+    
+    echo 'COSMOS_CONNECTION_STRING="${azurerm_cosmosdb_account.db.primary_sql_connection_string}"' > /home/adminuser/agss-web/.env
+    
+    # API Key
+    echo 'RESEND_API_KEY="${var.resend_api_key}"' >> /home/adminuser/agss-web/.env
+
+    chown -R adminuser:adminuser /home/adminuser/agss-web
+  EOF
+  )
 }
 resource "azurerm_network_security_group" "nsg" {
   name                = "nsg-allow-traffic"
@@ -134,6 +147,8 @@ resource "azurerm_network_security_group" "nsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
+
+  
 }
 resource "azurerm_network_interface_security_group_association" "nic_nsg_assoc" {
   network_interface_id      = azurerm_network_interface.nic.id

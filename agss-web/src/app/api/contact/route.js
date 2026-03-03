@@ -1,67 +1,74 @@
 import { NextResponse } from "next/server";
 import { getContainer } from "@/lib/cosmos";
-import nodemailer from "nodemailer"; // 🌟 1. Import ไปรษณีย์ของเราเข้ามา
+import { Resend } from "resend";
+
+// เรียกใช้ Resend ด้วย API Key จาก .env
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+const escapeHTML = (str) => {
+  if (!str) return "";
+  return str.replace(
+    /[&<>'"]/g,
+    (tag) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "'": "&#39;",
+        '"': "&quot;",
+      })[tag] || tag,
+  );
+};
 
 export async function POST(request) {
   try {
-    // 1. แกะกล่องข้อมูลที่ส่งมาจากหน้าเว็บ
     const body = await request.json();
-    const { fullName, email, phone, interests } = body;
 
-    // 2. เช็คว่ากรอกข้อมูลสำคัญครบไหม (Validation)
+    const fullName = escapeHTML(body.fullName);
+    const email = escapeHTML(body.email);
+    const phone = escapeHTML(body.phone || "-");
+    const interests = Array.isArray(body.interests)
+      ? body.interests.map(escapeHTML)
+      : [];
+
     if (!fullName || !email) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 },
+      );
     }
 
-    // 3. ปั้นข้อมูลเตรียมลง Database (Cosmos DB ชอบรูปแบบ JSON)
+    // 1. บันทึกลง Cosmos DB
     const newLead = {
       fullName,
       email,
-      phone: phone || "-", // ถ้าไม่กรอกเบอร์ให้ใส่ขีดไว้
-      interests: interests || [], // Array ของ Checkbox ที่เลือก
-      status: "New", // เอาไว้ทำระบบหลังบ้านต่อได้
+      phone,
+      interests,
+      status: "New",
       createdAt: new Date().toISOString(),
     };
-
-    // 4. สั่งบันทึกลง Cosmos DB
     const container = await getContainer();
     await container.items.create(newLead);
 
-    // 🌟 5. ตั้งค่าบุรุษไปรษณีย์ (ผูกกับ Gmail ของเราผ่านตัวแปร .env)
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
+    // 2. ยิง API สั่ง Resend ส่งอีเมล (ไม่ต้องใช้รหัสผ่าน Gmail แล้ว!)
+    await resend.emails.send({
+      from: "AGSS <onboarding@resend.dev>", // อีเมลต้นทางฟรีของ Resend สำหรับเทสต์
+      to: "bosschonnanut@gmail.com", // ใส่อีเมลจริงของคุณที่จะรับการแจ้งเตือน
+      subject: "🚨 [AGSS] แจ้งเตือนลูกค้าใหม่เข้า Cosmos DB!",
+      html: `
+        <h2>🚀 มีข้อมูลใหม่เข้า Cosmos DB</h2>
+        <p><strong>ชื่อ:</strong> ${fullName}</p>
+        <p><strong>อีเมล:</strong> ${email}</p>
+        <p><strong>เบอร์โทร:</strong> ${phone}</p>
+      `,
     });
 
-    // 🌟 6. ร่างจดหมาย (ดึงตัวแปร fullName, email, phone มาแสดงให้สวยงาม)
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_USER, // ส่งเข้าเมลตัวเอง (ถ้ามีเมลทีม Sales ก็เปลี่ยนตรงนี้ได้)
-      subject: `🚨 [New Lead] ลูกค้าใหม่จากหน้าเว็บ: ${fullName}`,
-      text: `
-        มีลูกค้าใหม่สนใจบริการ DR Cloud System ครับ! 🎉
-        -----------------------------------
-        👤 ชื่อ-นามสกุล: ${fullName}
-        📧 อีเมล: ${email}
-        📞 เบอร์โทร: ${phone || "-"}
-        🎯 ความสนใจ: ${interests && interests.length > 0 ? interests.join(", ") : "ไม่ได้ระบุ"}
-        เวลาที่ติดต่อมา: ${new Date().toLocaleString('th-TH')}
-        -----------------------------------
-        กรุณาติดต่อกลับลูกค้าโดยเร็วที่สุด!
-      `
-    };
-
-    // 🌟 7. สั่งร่อนจดหมาย!
-    await transporter.sendMail(mailOptions);
-
-    // 8. ส่งข้อความกลับไปบอกหน้าเว็บว่า "เรียบร้อย!"
-    return NextResponse.json({ success: true, message: "Talk to an expert request received & Email sent!" }, { status: 201 });
-
+    return NextResponse.json({ success: true }, { status: 201 });
   } catch (error) {
-    console.error("DB/Email Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("Server Error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
