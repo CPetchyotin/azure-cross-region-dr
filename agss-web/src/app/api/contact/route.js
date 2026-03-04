@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { getContainer } from "@/lib/cosmos";
 import { Resend } from "resend";
 
-// เรียกใช้ Resend ด้วย API Key จาก .env
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 const escapeHTML = (str) => {
   if (!str) return "";
@@ -22,6 +20,8 @@ const escapeHTML = (str) => {
 
 export async function POST(request) {
   try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
     const body = await request.json();
 
     const fullName = escapeHTML(body.fullName);
@@ -50,10 +50,10 @@ export async function POST(request) {
     const container = await getContainer();
     await container.items.create(newLead);
 
-    // 2. ยิง API สั่ง Resend ส่งอีเมล (ไม่ต้องใช้รหัสผ่าน Gmail แล้ว!)
+    // 2. ยิง API สั่ง Resend ส่งอีเมล
     await resend.emails.send({
-      from: "AGSS <onboarding@resend.dev>", // อีเมลต้นทางฟรีของ Resend สำหรับเทสต์
-      to: "bosschonnanut@gmail.com", // ใส่อีเมลจริงของคุณที่จะรับการแจ้งเตือน
+      from: "AGSS <onboarding@resend.dev>",
+      to: "bosschonnanut@gmail.com",
       subject: "🚨 [AGSS] แจ้งเตือนลูกค้าใหม่เข้า Cosmos DB!",
       html: `
         <h2>🚀 มีข้อมูลใหม่เข้า Cosmos DB</h2>
