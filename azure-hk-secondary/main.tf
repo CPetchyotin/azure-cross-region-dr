@@ -85,7 +85,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
     
     mkdir -p /home/adminuser/agss-web
     
-    echo 'COSMOS_CONNECTION_STRING="${azurerm_cosmosdb_account.db.primary_sql_connection_string}"' > /home/adminuser/agss-web/.env
+    
     
     # API Key
     echo 'RESEND_API_KEY="${var.resend_api_key}"' >> /home/adminuser/agss-web/.env
