@@ -29,6 +29,7 @@ env:
   ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
   ARM_ACCESS_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
+  TF_VAR_resend_api_key: ${{ secrets.RESEND_API_KEY }} # 🔑 1. เพิ่มบรรทัดนี้เพื่อให้ Terraform รู้จักกุญแจ
 
 jobs:
   # ==========================================
@@ -57,7 +58,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 🌟 ดึง IP จาก Terraform ออกมาเพื่อใช้เชื่อมต่อ
       - uses: hashicorp/setup-terraform@v3
       - name: Get SG IP from Terraform
         working-directory: ./azure-sg-main
@@ -65,7 +65,6 @@ jobs:
           terraform init
           echo "SG_IP=$(terraform output -raw primary_public_ip)" >> $GITHUB_ENV
 
-      # 🌟 ล้างโฟลเดอร์เก่าทิ้งเตรียมรับโค้ดใหม่
       - name: Create and Clean Web Directory
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -92,22 +91,23 @@ jobs:
         env:
           GRAFANA_PASSWORD: ${{ secrets.GRAFANA_PASSWORD }}
           COSMOS_CONNECTION_STRING: ${{ secrets.COSMOS_CONNECTION_STRING }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }} # 🔑 2. เพิ่มกุญแจเข้า Env ของ Step
         with:
           host: ${{ env.SG_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: GRAFANA_PASSWORD,COSMOS_CONNECTION_STRING
+          envs: GRAFANA_PASSWORD,COSMOS_CONNECTION_STRING,RESEND_API_KEY # 🔑 3. เพิ่ม RESEND_API_KEY ต่อท้าย
           script: |
             cd /home/adminuser/my-web
 
             echo "GRAFANA_PASSWORD=$GRAFANA_PASSWORD" > .env
             echo "COSMOS_CONNECTION_STRING=$COSMOS_CONNECTION_STRING" >> .env
+            echo "RESEND_API_KEY=$RESEND_API_KEY" >> .env # 🔑 4. สั่งยัดกุญแจลงไฟล์ .env ในเซิร์ฟเวอร์
             wait_for_apt() {
               while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
               while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
             }
 
-            # 🌟 แก้ไข: ใช้สคริปต์ติดตั้ง Official จากหน้าเว็บ Docker โดยตรง
             if ! command -v docker &> /dev/null; then
               export DEBIAN_FRONTEND=noninteractive
               wait_for_apt
@@ -120,16 +120,15 @@ jobs:
             sudo systemctl start docker
             sudo systemctl enable docker
 
-            # ล้างของเก่าและบังคับ Build ใหม่
             sudo docker compose down -v || true
             sudo docker system prune -a --volumes -f
 
-            # 🌟 แก้ไข: วางตำแหน่ง --env-file ให้ถูกต้อง (และเอาคำว่า build/up ที่ซ้ำซ้อนออก)
             sudo docker compose --env-file .env build --no-cache
             sudo docker compose --env-file .env up -d
 
             sleep 10
             sudo docker compose logs web
+
   # ==========================================
   # 🏗️ 3. INFRASTRUCTURE: HONG KONG (HK)
   # ==========================================
@@ -156,7 +155,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 🌟 ดึง IP จาก Terraform ออกมาเพื่อใช้เชื่อมต่อ
       - uses: hashicorp/setup-terraform@v3
       - name: Get HK IP from Terraform
         working-directory: ./azure-hk-secondary
@@ -190,22 +188,23 @@ jobs:
         env:
           GRAFANA_PASSWORD: ${{ secrets.GRAFANA_PASSWORD }}
           COSMOS_CONNECTION_STRING: ${{ secrets.COSMOS_CONNECTION_STRING }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }} # 🔑 5. เพิ่มกุญแจเข้า Env ของ Step ฝั่งฮ่องกง
         with:
           host: ${{ env.HK_IP }}
           username: adminuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: GRAFANA_PASSWORD,COSMOS_CONNECTION_STRING
+          envs: GRAFANA_PASSWORD,COSMOS_CONNECTION_STRING,RESEND_API_KEY # 🔑 6. เพิ่ม RESEND_API_KEY ต่อท้าย
           script: |
             cd /home/adminuser/my-web
 
             echo "GRAFANA_PASSWORD=$GRAFANA_PASSWORD" > .env
             echo "COSMOS_CONNECTION_STRING=$COSMOS_CONNECTION_STRING" >> .env
+            echo "RESEND_API_KEY=$RESEND_API_KEY" >> .env # 🔑 7. สั่งยัดกุญแจลงไฟล์ .env ในเซิร์ฟเวอร์ฮ่องกง
             wait_for_apt() {
               while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
               while sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do sleep 5; done
             }
 
-            # 🌟 ใช้สคริปต์ติดตั้ง Official จากหน้าเว็บ Docker เหมือนฝั่ง SG
             if ! command -v docker &> /dev/null; then
               export DEBIAN_FRONTEND=noninteractive
               wait_for_apt
@@ -218,11 +217,9 @@ jobs:
             sudo systemctl start docker
             sudo systemctl enable docker
 
-            # ล้างของเก่าและบังคับ Build ใหม่
             sudo docker compose down -v || true
             sudo docker system prune -a --volumes -f
 
-            # 🌟 แก้ไข: วางตำแหน่ง --env-file ให้ถูกต้อง (และเอาคำว่า build/up ที่ซ้ำซ้อนออก)
             sudo docker compose --env-file .env build --no-cache
             sudo docker compose --env-file .env up -d
 
