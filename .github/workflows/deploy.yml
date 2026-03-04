@@ -198,7 +198,7 @@ jobs:
             cd /home/adminuser/my-web
 
             echo "GRAFANA_PASSWORD=$GRAFANA_PASSWORD" > .env
-            echo "COSMOS_CONNECTION_STRING=$COSMOS_CONNECTION_STRING" >> .env
+
             echo "RESEND_API_KEY=$RESEND_API_KEY" >> .env # 🔑 7. สั่งยัดกุญแจลงไฟล์ .env ในเซิร์ฟเวอร์ฮ่องกง
             wait_for_apt() {
               while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
