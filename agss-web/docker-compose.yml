@@ -13,7 +13,6 @@ services:
     ports:
       - "9100:9100"
 
-  # 🌟 ตัว p ก็ต้องตรงกัน
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -25,7 +24,6 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
 
-  # 🌟 ตัว g ก็ต้องตรงกัน
   grafana:
     image: grafana/grafana:latest
     container_name: grafana

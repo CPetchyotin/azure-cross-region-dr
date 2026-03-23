@@ -55,7 +55,7 @@ export const cases = [
     title: "PDPA for Industry",
     subtitle: "100% Compliance",
     image:
-      "https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80",
+      "/images/pdpa.png",
     icon: FileText,
     color: "text-green-600",
     bg: "bg-green-50",
@@ -131,7 +131,7 @@ export const cases = [
     title: "Data Resilience Framework",
     subtitle: "Backup & Disaster Recovery",
     image:
-      "https://images.unsplash.com/photo-1601597111158-2fceff292cdc?auto=format&fit=crop&q=80",
+      "/images/backup.png",
     icon: Save,
     color: "text-purple-600",
     bg: "bg-purple-50",
@@ -150,7 +150,7 @@ export const cases = [
     title: "Powering Precision ASRS",
     subtitle: "Smart Logistics",
     image:
-      "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&q=80",
+      "/images/asrs.png",
     icon: Server,
     color: "text-amber-600",
     bg: "bg-amber-50",
@@ -233,7 +233,7 @@ export const solutionsData = [
     color: "from-green-500 to-emerald-400",
     tags: ["IT Asset Mgmt", "Compliance"],
     image:
-      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80",
+      "/images/jp1.png",
     fullDesc:
       "Maintain strict compliance with software licenses and automate routine IT tasks. JP1 helps Japanese and multinational manufacturers in Thailand keep track of thousands of devices, ensuring audit-readiness and reducing unauthorized software risks.",
     features: [
@@ -252,7 +252,7 @@ export const solutionsData = [
     color: "from-purple-500 to-indigo-500",
     tags: ["Data Recovery", "Cyber Resilient"],
     image:
-      "https://images.unsplash.com/photo-1601597111158-2fceff292cdc?auto=format&fit=crop&q=80",
+      "/images/backup.png",
     fullDesc:
       "Data loss means production halts. We design and implement robust Backup and Disaster Recovery (DR) strategies. Using the 3-2-1 backup rule and immutability, we guarantee your ERP and production data can be restored in minutes, not days.",
     features: [
@@ -309,7 +309,7 @@ export const solutionsData = [
     color: "from-indigo-500 to-violet-500",
     tags: ["24/7 Support", "Alerts"],
     image:
-      "https://images.unsplash.com/photo-1551808525-51a94da548ce?auto=format&fit=crop&q=80",
+      "/images/noc.png",
     fullDesc:
       "Don't wait for a system to crash to know there's a problem. Our Network Operations Center (NOC) monitors your servers, switches, and firewalls 24/7. We detect anomalies and fix them before they impact your production line.",
     features: [

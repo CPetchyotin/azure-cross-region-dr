@@ -14,7 +14,7 @@ env:
   ARM_ACCESS_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
 
 jobs:
-  destroy-hk: 
+  destroy-hk:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -22,14 +22,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
-      
-      - run: echo "${{ secrets.SSH_PUBLIC_KEY }}" > ../id_rsa_azure.pub
-      
-      - run: terraform init  
-      - run: terraform destroy -auto-approve 
 
-  destroy-sg: 
-    needs: destroy-hk 
+      - run: echo "${{ secrets.SSH_PUBLIC_KEY }}" > ../id_rsa_azure.pub
+
+      - run: terraform init
+      - run: terraform destroy -auto-approve
+
+  destroy-sg:
+    needs: destroy-hk
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -37,8 +37,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
-      
+
       - run: echo "${{ secrets.SSH_PUBLIC_KEY }}" > ../id_rsa_azure.pub
-      
-      - run: terraform init  
+
+      - run: terraform init
       - run: terraform destroy -auto-approve
