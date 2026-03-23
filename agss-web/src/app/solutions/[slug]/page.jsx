@@ -47,7 +47,7 @@ const solutionsData = [
     theme: 'emerald',
     color: 'from-green-500 to-emerald-400',
     tags: ['IT Asset Mgmt', 'Compliance'],
-    image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80',
+    image: '/images/jp1.png',
     fullDesc: 'Maintain strict compliance with software licenses and automate routine IT tasks. JP1 helps Japanese and multinational manufacturers in Thailand keep track of thousands of devices, ensuring audit-readiness and reducing unauthorized software risks.',
     features: ['Automated Inventory Tracking', 'Software License Compliance', 'Remote Deployment', 'Security Policy Enforcement']
   },
@@ -59,7 +59,7 @@ const solutionsData = [
     theme: 'indigo',
     color: 'from-purple-500 to-indigo-500',
     tags: ['Data Recovery', 'Cyber Resilient'],
-    image: 'https://images.unsplash.com/photo-1601597111158-2fceff292cdc?auto=format&fit=crop&q=80',
+    image: '/images/backup.png',
     fullDesc: 'Data loss means production halts. We design and implement robust Backup and Disaster Recovery (DR) strategies. Using the 3-2-1 backup rule and immutability, we guarantee your ERP and production data can be restored in minutes, not days.',
     features: ['Immutable Backups (Ransomware Proof)', 'Offsite & Cloud Replication', 'Automated DR Testing', 'Zero-Downtime Architecture']
   },
@@ -71,7 +71,7 @@ const solutionsData = [
     theme: 'sky',
     color: 'from-sky-500 to-blue-500',
     tags: ['Azure', 'AWS', 'Inet', 'SIS Cloud'],
-    image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80',
+    image: '/images/cloud.jpg',
     fullDesc: 'Seamlessly migrate your non-latency-sensitive workloads to the cloud. We help you choose the right environment (Azure, AWS, or Local Thai Clouds) to optimize costs while ensuring secure access for remote workers and multi-site factory operations.',
     features: ['Cloud Readiness Assessment', 'Hybrid Cloud Architecture', 'M365 & Azure Migration', 'Cloud Cost Optimization']
   },
@@ -95,7 +95,7 @@ const solutionsData = [
     theme: 'violet',
     color: 'from-indigo-500 to-violet-500',
     tags: ['24/7 Support', 'Alerts'],
-    image: 'https://images.unsplash.com/photo-1551808525-51a94da548ce?auto=format&fit=crop&q=80',
+    image: '/images/noc.png',
     fullDesc: 'Don\'t wait for a system to crash to know there\'s a problem. Our Network Operations Center (NOC) monitors your servers, switches, and firewalls 24/7. We detect anomalies and fix them before they impact your production line.',
     features: ['24/7 Infrastructure Monitoring', 'Real-time Alerting (LINE/Email)', 'Performance Bottleneck Analytics', 'Monthly Health Reports']
   }
